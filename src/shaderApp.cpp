@@ -14,8 +14,12 @@ extern "C" {
 #include "ilclient.h"
 }
 
+#define WRITE_BINARY_FILE 1
+#include <fstream>
+
 #define ENCODE_MULTIPLE_VIDEOS 1
 #define SHOW_OVERLAY 1
+#define SLEEP_DELAY 1
 
 #define WIDTH     640
 #define PITCH     ((WIDTH+31)&~31)
@@ -32,8 +36,8 @@ const int MEGABYTE_IN_BITS = 8388608;
 const int FRAMERATE = 10;// FPS
 float delay = 1.0/(float)FRAMERATE;// s
 float uDelay = delay*1000000.0;// us
-int bitrate = FRAMERATE * SIZE * 8 ;// * 1 / 4;// bits/s
-//int bitrate = MEGABYTE_IN_BITS * 2;
+//int bitrate = FRAMERATE * SIZE;// * 8 ;// * 1 / 4;// bits/s
+int bitrate = MEGABYTE_IN_BITS * 2;
 
 const int MODINTERVAL = 1;
 
@@ -79,12 +83,45 @@ fill_buffer_with_image(void *buf,
 }
 
 //--------------------------------------------------------------
+void fill_input_buffer_done(void* data, COMPONENT_T* comp) {
+}
+
+//--------------------------------------------------------------
+void empty_input_buffer_done(void* data, COMPONENT_T* comp) {
+}
+
+//--------------------------------------------------------------
+void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
+}
+
+//--------------------------------------------------------------
+void empty_output_buffer_done(void* data, COMPONENT_T* comp) {
+}
+
+//--------------------------------------------------------------
 static void *write_video_function( void* ptr ) {
   static int id=0;
   char fname[50];
   shaderApp* app;
   app = (shaderApp *) ptr;
 
+#if WRITE_BINARY_FILE
+  while (1) {
+    // printf("Waiting for images!\n",fname);
+    while ( app->vBuffer.isEmpty() ) {
+      usleep(10000);
+    }
+    sprintf(fname,"img%04d.ppm",id++);
+    //printf("Writing %s\n",fname);
+    std::ofstream outfile (fname,std::ofstream::binary);
+    sprintf(fname,"P6 %d %d 255 ",WIDTH,HEIGHT);
+    outfile.write(fname,strlen(fname));
+    outfile.write(app->vBuffer.read(),WIDTH*HEIGHT*3);
+    outfile.close();
+    app->vBuffer.remove();
+  }
+
+#else
   OMX_VIDEO_PARAM_PORTFORMATTYPE format;
   OMX_PARAM_PORTDEFINITIONTYPE def;
   OMX_BUFFERHEADERTYPE *buf;
@@ -105,10 +142,12 @@ static void *write_video_function( void* ptr ) {
     return (void *)-3;
   }
 
+#if 0
   if (OMX_Init() != OMX_ErrorNone) {
     ilclient_destroy(client);
     return (void *)-4;
   }
+#endif
 
   // create video_encode
   error = (OMX_ERRORTYPE)ilclient_create_component(client, &video_encode, "video_encode",
@@ -246,23 +285,25 @@ static void *write_video_function( void* ptr ) {
     do {
       while ( app->vBuffer.isEmpty() );
       //printf("getting next buffer\n");
+      // GET INPUT BUFFER TO OMX VIDEO_ENCODE COMPONENT
       buf = ilclient_get_input_buffer(video_encode, 200, 1);
       if (buf == NULL) {
 	printf("Doh, no buffers for me!\n");
       }
       else {
 	//printf("alloc = %d\n",buf->nAllocLen);
+	// FILL INPUT BUFFER WITH IMAGE DATA
 	fill_buffer_with_image(buf->pBuffer, &buf->nFilledLen, app->vBuffer.read());
 	framenumber++;
 	app->vBuffer.remove();
-
+	// TELL OMX TO GET THE DATA FROM THE BUFFER
 	if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_encode), buf) !=
 	    OMX_ErrorNone) {
 	  printf("Error emptying buffer!\n");
 	}
-
+	// GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
 	out = ilclient_get_output_buffer(video_encode, 201, 1);
-
+	// FILL THE BUFFER WITH OMX OUTPUT DATA
 	error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
 	if (error != OMX_ErrorNone) {
 	  printf("Error filling buffer: %x\n", error);
@@ -288,11 +329,16 @@ static void *write_video_function( void* ptr ) {
 	else {
 	  printf("Not getting it :(\n");
 	}
+#if SLEEP_DELAY
 	usleep((int)uDelay);
+#endif
       }
     }
-    //while (framenumber < app->frameInterval);
+#if ENCODE_MULTIPLE_VIDEOS
+    while (framenumber < app->frameInterval);
+#else
     while (true);
+#endif
 
     fclose(outf);
 
@@ -314,6 +360,8 @@ static void *write_video_function( void* ptr ) {
   OMX_Deinit();
 
   ilclient_destroy(client);
+
+#endif
 
   return (void *)0;
 }

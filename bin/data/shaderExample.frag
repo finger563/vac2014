@@ -204,12 +204,12 @@ void main(void)
   else 
     b = 0.0;
 
-  vec4 yuv;
   //vec4 rgb = gray;
   //vec4 rgb = vec4(r,g,img_gray,1);
   vec4 rgb = vec4(r,g,b,1);
-  //gl_FragColor=rgb;
-  yuv = RGBtoYUV * rgb;
-  gl_FragColor = yuv;
+  gl_FragColor=rgb;
+  
+  //vec4 yuv = RGBtoYUV * rgb;
+  //gl_FragColor = yuv;
 }
 

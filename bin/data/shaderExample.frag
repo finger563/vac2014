@@ -204,10 +204,23 @@ void main(void)
   else 
     b = 0.0;
 
+  float alpha = 1.0;
+  if (r == 1.0) {
+    alpha=alpha/2.0;
+  }
+  if (b == 1.0) {
+    alpha = alpha/2.0;
+  }
+  if (g == 1.0 ) {
+    alpha = alpha/2.0;
+  }
+
   //vec4 rgb = gray;
   //vec4 rgb = vec4(r,g,img_gray,1);
-  vec4 rgb = vec4(r,g,b,1);
-  gl_FragColor=rgb;
+  //vec4 rgb = vec4(r,g,b,1);
+  //vec4 rgb = (gray.rgb,alpha);
+  gray.w = alpha;
+  gl_FragColor=gray;
   
   //vec4 yuv = RGBtoYUV * rgb;
   //gl_FragColor = yuv;

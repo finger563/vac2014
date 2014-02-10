@@ -19,6 +19,7 @@ extern "C" {
 
 #define ENCODE_MULTIPLE_VIDEOS 1
 #define SHOW_OVERLAY 1
+#define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
 
 #define WIDTH     640
@@ -30,8 +31,8 @@ extern "C" {
 
 static void *write_video_function( void* ptr );
 
-const int FINTERVAL = 10;
-const int BUFFER_LENGTH = 10;
+const int FINTERVAL = 20;
+const int BUFFER_LENGTH = 40;
 const int MEGABYTE_IN_BITS = 8388608;
 const int FRAMERATE = 10;// FPS
 float delay = 1.0/(float)FRAMERATE;// s
@@ -108,7 +109,7 @@ static void *write_video_function( void* ptr ) {
 #if WRITE_BINARY_FILE
   while (1) {
     // printf("Waiting for images!\n",fname);
-    while ( app->vBuffer.isEmpty() ) {
+    while ( app->vBuffer.numImages() < app->frameInterval ) {
       usleep(10000);
     }
     sprintf(fname,"img%04d.ppm",id++);
@@ -119,6 +120,7 @@ static void *write_video_function( void* ptr ) {
     outfile.write(app->vBuffer.read(),WIDTH*HEIGHT*3);
     outfile.close();
     app->vBuffer.remove();
+    usleep(uDelay);
   }
 
 #else
@@ -141,13 +143,6 @@ static void *write_video_function( void* ptr ) {
   if ((client = ilclient_init()) == NULL) {
     return (void *)-3;
   }
-
-#if 0
-  if (OMX_Init() != OMX_ErrorNone) {
-    ilclient_destroy(client);
-    return (void *)-4;
-  }
-#endif
 
   // create video_encode
   error = (OMX_ERRORTYPE)ilclient_create_component(client, &video_encode, "video_encode",
@@ -441,13 +436,15 @@ void shaderApp::update()
 //--------------------------------------------------------------
 void shaderApp::draw(){
 
-
+#if SHOW_PREVIEW
   if (doShader) {
     fbo.draw(0, 0);
   }
   else {
     videoGrabber.draw();
-  }	
+  }
+#endif
+
 #if SHOW_OVERLAY
   stringstream info;
   info << "App FPS: " << ofGetFrameRate() << "\n";

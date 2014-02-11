@@ -346,7 +346,7 @@ void shaderApp::setup()
   filterCollection.setup(&videoGrabber.omxMaps);
   fbo.allocate(omxCameraSettings.width, omxCameraSettings.height, GL_RGBA);
 
-  imgFile.allocate(fbo.getWidth(),fbo.getHeight(), OF_IMAGE_COLOR);
+  //imgFile.allocate(fbo.getWidth(),fbo.getHeight(), OF_IMAGE_COLOR);
 
   picnum = 0;
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());

@@ -220,9 +220,9 @@ void main(void)
   //vec4 rgb = vec4(r,g,b,1);
   //vec4 rgb = (gray.rgb,alpha);
   gray.w = alpha;
-  gl_FragColor=gray;
+  //gl_FragColor=gray;
   
-  //vec4 yuv = RGBtoYUV * rgb;
-  //gl_FragColor = yuv;
+  vec4 yuv = RGBtoYUV * gray;
+  gl_FragColor = yuv;
 }
 

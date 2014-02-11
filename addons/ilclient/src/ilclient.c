@@ -1329,6 +1329,7 @@ OMX_BUFFERHEADERTYPE *ilclient_get_input_buffer(COMPONENT_T *comp, int portIndex
    do {
       VCOS_UNSIGNED set;
 
+      printf("waiting semaphore\n");
       vcos_semaphore_wait(&comp->sema);
       ret = comp->in_list;
       while(ret != NULL && ret->nInputPortIndex != portIndex)
@@ -1347,12 +1348,18 @@ OMX_BUFFERHEADERTYPE *ilclient_get_input_buffer(COMPONENT_T *comp, int portIndex
          ret->pAppPrivate = NULL;
       }
       vcos_semaphore_post(&comp->sema);
+      printf("posting semaphore\n");
 
-      if(block && !ret)
-         vcos_event_flags_get(&comp->event, ILCLIENT_EMPTY_BUFFER_DONE, VCOS_OR_CONSUME, -1, &set);
+      if(block && !ret) {
+	vcos_event_flags_get(&comp->event, ILCLIENT_EMPTY_BUFFER_DONE, VCOS_OR_CONSUME, 10, &set);
+	printf("got event flags!\n");
+	//vcos_event_flags_get(&comp->event, ILCLIENT_EMPTY_BUFFER_DONE, VCOS_OR_CONSUME, -1, &set);
+      }
+      printf("looping again\n");
 
    } while(block && !ret);
-
+   
+   printf("returning from get input buffer\n");
    return ret;
 }
 

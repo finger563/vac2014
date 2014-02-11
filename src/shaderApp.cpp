@@ -137,7 +137,7 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
     }
 
     //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
-    app->outfile.write(out->pBuffer,out->nFilledLen);
+    app->outfile.write((const char*)out->pBuffer,out->nFilledLen);
     printf("Wrote frame\n");
     out->nFilledLen = 0;
   }

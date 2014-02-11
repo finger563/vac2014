@@ -8,6 +8,8 @@
 #include "ImageFilterCollection.h"
 #include <pthread.h>
 
+#include <fstream>
+
 #include "OMXCameraSettings.h"
 #include "OMXCameraUtils.h"
 
@@ -140,16 +142,15 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   int height;
 
   int picnum;
-  ofImage imgFile;
+
+  std::ofstream outfile;
   
   int frameInterval;  // how many images make up a video?
   imgBuffer vBuffer;  // image buffer for video
 
-  pthread_t imageThread;
   pthread_t videoThread;
 
   OMXCameraSettings omxCameraSettings;
-  //OMXCameraUtils omxCameraUtils;
 
 };
 

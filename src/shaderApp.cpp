@@ -18,7 +18,7 @@ extern "C" {
 
 #define SHOW_OVERLAY 1
 #define SHOW_PREVIEW 1
-#define SLEEP_DELAY 1
+#define SLEEP_DELAY 0
 
 #define WIDTH     640
 #define PITCH     ((WIDTH+31)&~31)
@@ -36,7 +36,7 @@ const int FRAMERATE = 20;// FPS
 float delay = 1.0/(float)FRAMERATE;// s
 float uDelay = delay*1000000.0;// us
 //int bitrate = FRAMERATE * SIZE;// * 8 ;// * 1 / 4;// bits/s
-int bitrate = MEGABYTE_IN_BITS * 5;
+int bitrate = MEGABYTE_IN_BITS * 2;
 
 const int MODINTERVAL = 1;
 
@@ -84,12 +84,12 @@ fill_buffer_with_image(void *buf,
 //--------------------------------------------------------------
 void empty_input_buffer_done(void* data, COMPONENT_T* comp) {
   //at this point we make another call to fill the buffer with image data
+  printf("in the empty_input_buffer callback\n");
   shaderApp* app;
   app = (shaderApp *)data;
   COMPONENT_T* video_encode = comp;
 
   OMX_BUFFERHEADERTYPE *buf;
-  OMX_BUFFERHEADERTYPE *out;
   OMX_ERRORTYPE error;
 
   while ( app->vBuffer.isEmpty() );
@@ -99,11 +99,18 @@ void empty_input_buffer_done(void* data, COMPONENT_T* comp) {
   fill_buffer_with_image(buf->pBuffer, &buf->nFilledLen, app->vBuffer.read());
   app->vBuffer.remove();
 
+  printf("input filled %d \n",&buf->nFilledLen);
+
+#if SLEEP_DELAY
+  usleep(uDelay);
+#endif
+
   // TELL OMX TO GET THE DATA FROM THE BUFFER
-  if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_encode), buf) !=
-      OMX_ErrorNone) {
-    printf("Error emptying buffer!\n");
+  error = OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_encode), buf);
+  if ( error != OMX_ErrorNone) {
+    printf("Error emptying input buffer! %x \n",error);
   }
+  printf("leaving empty callback\n");
 }
 
 //--------------------------------------------------------------
@@ -111,39 +118,50 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
   //  we need to call this to write the image data
   // this callback is called after we've asked OMX to fill our
   // output buffer after the encoding of that frame is done
+  printf("in the fill_output_buffer callback\n");
   shaderApp* app;
   app = (shaderApp *)data;
   COMPONENT_T* video_encode = comp;
 
-  OMX_BUFFERHEADERTYPE *buf;
   OMX_BUFFERHEADERTYPE *out;
   OMX_ERRORTYPE error;
 
   // GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
   out = ilclient_get_output_buffer(video_encode, 201, 0);
 
-  // FILL THE BUFFER WITH OMX OUTPUT DATA
-  error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
-  if (error != OMX_ErrorNone) {
-    printf("Error filling buffer: %x\n", error);
-  }
-
-  if (out != NULL) {
-    if (out->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
-      int i;
-      for (i = 0; i < out->nFilledLen; i++)
-	printf("%x ", out->pBuffer[i]);
-      printf("\n");
+  printf("output filled: %d\n",out->nFilledLen);
+  
+#if LOOP_CALLBACK
+  do {
+#endif
+    // FILL THE BUFFER WITH OMX OUTPUT DATA
+    error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
+    if (error != OMX_ErrorNone) {
+      printf("Error filling output buffer: %x\n", error);
     }
 
-    //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
-    app->outfile.write((const char*)out->pBuffer,out->nFilledLen);
-    printf("Wrote frame\n");
-    out->nFilledLen = 0;
-  }
-  else {
-    printf("Not getting it :(\n");
-  }
+    if (out != NULL) {
+      if (out->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
+	int i;
+	for (i = 0; i < out->nFilledLen; i++)
+	  printf("%x ", out->pBuffer[i]);
+	printf("\n");
+      }
+
+      //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
+      app->outfile.write((const char*)out->pBuffer,out->nFilledLen);
+      printf("Wrote frame\n");
+      out->nFilledLen = 0;
+    }
+    else {
+      printf("Not getting it :(\n");
+    }
+
+#if LOOP_CALLBACK
+  } while ( !(out->nFlags & OMX_BUFFERFLAG_ENDOFFRAME) );
+#endif
+
+  printf("leaving fill_output callback\n");
 }
 
 //--------------------------------------------------------------
@@ -165,7 +183,7 @@ static void *write_video_function( void* ptr ) {
 
   int status = 0;
 
-  app->outfile  = std::ofstream("test.h264",std::ofstream::binary);
+  app->outfile.open("test.h264",std::ofstream::binary);
 
   memset(list, 0, sizeof(list));
 
@@ -286,13 +304,40 @@ static void *write_video_function( void* ptr ) {
   printf("encode to executing...\n");
   ilclient_change_component_state(video_encode, OMX_StateExecuting);
 
+  printf("setting callbacks\n");
+  ilclient_set_fill_buffer_done_callback(client, fill_output_buffer_done, (void *)app);
+  ilclient_set_empty_buffer_done_callback(client, empty_input_buffer_done, (void *)app);
+  printf("callbacks set\n");
+
   while ( app->vBuffer.numImages() < app->frameInterval) {
     usleep(50000);
   }
 
-  ilclient_set_fill_buffer_done_callback(client, fill_output_buffer_done, (void *)app);
-  ilclient_set_empty_buffer_done_callback(client, empty_input_buffer_done, (void *)app);
+  // GET THE INPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
+  buf = ilclient_get_input_buffer(video_encode, 200, 1);
+  printf("got input buffer\n");
 
+  fill_buffer_with_image(buf->pBuffer, &buf->nFilledLen, app->vBuffer.read());
+  app->vBuffer.remove();
+  printf("filled buffer with image\n");
+
+  // TELL OMX TO GET THE DATA FROM THE BUFFER
+  if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(video_encode), buf) !=
+      OMX_ErrorNone) {
+    printf("Error emptying buffer!\n");
+  }
+#if 0
+  // GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
+  out = ilclient_get_output_buffer(video_encode, 201, 1);
+  printf("got the output buffer\n");
+
+  // FILL THE BUFFER WITH OMX OUTPUT DATA
+  error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
+  if (error != OMX_ErrorNone) {
+    printf("Error filling output buffer: %x\n", error);
+  }
+#endif
+  printf("looping forever\n");
   while (true);
 
   printf("Teardown.\n");

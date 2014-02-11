@@ -137,13 +137,8 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
     }
 
     //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
-    error = (OMX_ERRORTYPE)app->outfile.write(out->pBuffer,out->nFilledLen);
-    if (error != out->nFilledLen) {
-      printf("fwrite: Error emptying buffer: %d!\n", error);
-    }
-    else {
-      printf("Writing frame %d\n", framenumber);
-    }
+    app->outfile.write(out->pBuffer,out->nFilledLen);
+    printf("Wrote frame\n");
     out->nFilledLen = 0;
   }
   else {
@@ -170,7 +165,7 @@ static void *write_video_function( void* ptr ) {
 
   int status = 0;
 
-  outfile  = std::ofstream("test.h264",std::ofstream::binary);
+  app->outfile  = std::ofstream("test.h264",std::ofstream::binary);
 
   memset(list, 0, sizeof(list));
 

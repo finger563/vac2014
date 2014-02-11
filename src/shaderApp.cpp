@@ -94,10 +94,9 @@ void empty_input_buffer_done(void* data, COMPONENT_T* comp) {
 
   while ( app->vBuffer.isEmpty() );
 
-  buf = ilclient_get_input_buffer(video_encode, 200, 1);
+  buf = ilclient_get_input_buffer(video_encode, 200, 0);
 
   fill_buffer_with_image(buf->pBuffer, &buf->nFilledLen, app->vBuffer.read());
-  framenumber++;
   app->vBuffer.remove();
 
   // TELL OMX TO GET THE DATA FROM THE BUFFER
@@ -112,7 +111,6 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
   //  we need to call this to write the image data
   // this callback is called after we've asked OMX to fill our
   // output buffer after the encoding of that frame is done
-#if USE_CALLBACKS
   shaderApp* app;
   app = (shaderApp *)data;
   COMPONENT_T* video_encode = comp;
@@ -122,7 +120,7 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
   OMX_ERRORTYPE error;
 
   // GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
-  out = ilclient_get_output_buffer(video_encode, 201, 1);
+  out = ilclient_get_output_buffer(video_encode, 201, 0);
 
   // FILL THE BUFFER WITH OMX OUTPUT DATA
   error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
@@ -151,7 +149,6 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
   else {
     printf("Not getting it :(\n");
   }
-#endif
 }
 
 //--------------------------------------------------------------

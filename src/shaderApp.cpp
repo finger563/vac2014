@@ -40,6 +40,10 @@ int bitrate = MEGABYTE_IN_BITS * 2;
 
 const int MODINTERVAL = 1;
 
+OMX_BUFFERHEADERTYPE *buf;
+OMX_BUFFERHEADERTYPE *out;
+
+
 static int
 fill_buffer_with_image(void *buf, 
 		       OMX_U32 *filledLen,
@@ -89,7 +93,6 @@ void empty_input_buffer_done(void* data, COMPONENT_T* comp) {
   app = (shaderApp *)data;
   COMPONENT_T* video_encode = comp;
 
-  OMX_BUFFERHEADERTYPE *buf;
   OMX_ERRORTYPE error;
 
   while ( app->vBuffer.isEmpty() );
@@ -123,43 +126,35 @@ void fill_output_buffer_done(void* data, COMPONENT_T* comp) {
   app = (shaderApp *)data;
   COMPONENT_T* video_encode = comp;
 
-  OMX_BUFFERHEADERTYPE *out;
   OMX_ERRORTYPE error;
 
   // GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
   out = ilclient_get_output_buffer(video_encode, 201, 0);
 
-  printf("output filled: %d\n",out->nFilledLen);
+  printf("output filled: %d,%d\n",out,out->nFilledLen);
   
-#if LOOP_CALLBACK
-  do {
-#endif
-    // FILL THE BUFFER WITH OMX OUTPUT DATA
-    error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
-    if (error != OMX_ErrorNone) {
-      printf("Error filling output buffer: %x\n", error);
+  if (out != NULL) {
+    if (out->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
+      int i;
+      for (i = 0; i < out->nFilledLen; i++)
+	printf("%x ", out->pBuffer[i]);
+      printf("\n");
     }
 
-    if (out != NULL) {
-      if (out->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
-	int i;
-	for (i = 0; i < out->nFilledLen; i++)
-	  printf("%x ", out->pBuffer[i]);
-	printf("\n");
-      }
+    //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
+    app->outfile.write((const char*)out->pBuffer,out->nFilledLen);
+    printf("Wrote frame\n");
+    out->nFilledLen = 0;
+  }
+  else {
+    printf("Not getting it :(\n");
+  }
 
-      //error = (OMX_ERRORTYPE)fwrite(out->pBuffer, 1, out->nFilledLen, outf);
-      app->outfile.write((const char*)out->pBuffer,out->nFilledLen);
-      printf("Wrote frame\n");
-      out->nFilledLen = 0;
-    }
-    else {
-      printf("Not getting it :(\n");
-    }
-
-#if LOOP_CALLBACK
-  } while ( !(out->nFlags & OMX_BUFFERFLAG_ENDOFFRAME) );
-#endif
+  // FILL THE BUFFER WITH OMX OUTPUT DATA
+  error = OMX_FillThisBuffer(ILC_GET_HANDLE(video_encode), out);
+  if (error != OMX_ErrorNone) {
+    printf("Error filling output buffer: %x\n", error);
+  }
 
   printf("leaving fill_output callback\n");
 }
@@ -173,8 +168,6 @@ static void *write_video_function( void* ptr ) {
 
   OMX_VIDEO_PARAM_PORTFORMATTYPE format;
   OMX_PARAM_PORTDEFINITIONTYPE def;
-  OMX_BUFFERHEADERTYPE *buf;
-  OMX_BUFFERHEADERTYPE *out;
   OMX_ERRORTYPE error;
 
   COMPONENT_T *video_encode = NULL;
@@ -314,7 +307,7 @@ static void *write_video_function( void* ptr ) {
   }
 
   // GET THE INPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
-  buf = ilclient_get_input_buffer(video_encode, 200, 1);
+  buf = ilclient_get_input_buffer(video_encode, 200, 0);
   printf("got input buffer\n");
 
   fill_buffer_with_image(buf->pBuffer, &buf->nFilledLen, app->vBuffer.read());
@@ -326,9 +319,9 @@ static void *write_video_function( void* ptr ) {
       OMX_ErrorNone) {
     printf("Error emptying buffer!\n");
   }
-#if 0
+#if 1
   // GET THE OUTPUT BUFFER FROM THE OMX VIDEO_ENCODE COMPONENT
-  out = ilclient_get_output_buffer(video_encode, 201, 1);
+  out = ilclient_get_output_buffer(video_encode, 201, 0);
   printf("got the output buffer\n");
 
   // FILL THE BUFFER WITH OMX OUTPUT DATA

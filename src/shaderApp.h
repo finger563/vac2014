@@ -6,12 +6,32 @@
 #include "ConsoleListener.h"
 #include "ofxRPiCameraVideoGrabber.h"
 #include "ImageFilterCollection.h"
+
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+
 #include <pthread.h>
 
 #include "OMXCameraSettings.h"
 #include "OMXCameraUtils.h"
 
-//#define USE_OFIMAGE 0
+enum messageType {
+  START,
+  STOP
+};
+
+const int MAX_TRANSMIT_SIZE = 65500;
+
+using namespace std;
 
 class imgBuffer {
  
@@ -123,6 +143,9 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   void draw();
   void keyPressed(int key);
 
+  int socketSetup();
+  void sendImage(char* img, int size);
+
   void onCharacterReceived(SSHKeyListenerEventData& e);
   ConsoleListener consoleListener;
   ofxRPiCameraVideoGrabber videoGrabber;
@@ -140,8 +163,18 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   int height;
 
   int picnum;
-  ofImage imgFile;
-  
+
+  int sockfd;
+  int local_port;
+  int remote_port;
+  char local_ip[50];
+  char remote_ip[50];
+  struct sockaddr remote_addr;
+  struct sockaddr_in local_addr;
+  socklen_t remote_addr_len;
+  socklen_t local_addr_len;
+  int sock_buffer_len;
+
   int frameInterval;  // how many images make up a video?
   imgBuffer vBuffer;  // image buffer for video
 

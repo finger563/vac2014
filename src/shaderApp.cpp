@@ -1,6 +1,5 @@
 #include "shaderApp.h"
 
-
 extern "C" {
 
 #include <IL/OMX_Core.h>
@@ -17,7 +16,7 @@ extern "C" {
 #define WRITE_BINARY_FILE 1
 #include <fstream>
 
-#define ENCODE_MULTIPLE_VIDEOS 1
+#define ENCODE_MULTIPLE_VIDEOS 0
 #define SHOW_OVERLAY 1
 #define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
@@ -41,6 +40,10 @@ float uDelay = delay*1000000.0;// us
 int bitrate = MEGABYTE_IN_BITS * 2;
 
 const int MODINTERVAL = 1;
+
+void *get_in_addr(struct sockaddr *sa);
+u_short get_in_port(struct sockaddr *sa);
+u_long get_my_ip_with_prefix(char* prefix);
 
 static int
 fill_buffer_with_image(void *buf, 
@@ -361,9 +364,74 @@ static void *write_video_function( void* ptr ) {
   return (void *)0;
 }
 
+void shaderApp::sendImage(char *img,int size) {
+  char tmp[10];
+  sprintf(tmp,"%d",START);
+  int numBytes = 0;
+  while ((numBytes = sendto(sockfd, tmp, strlen(tmp),0, 
+			    (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1);
+  char* ptr = img;
+  int bytesLeft = size;
+  int numMessages = ceil((double)size/(double)MAX_TRANSMIT_SIZE);
+  for (int i=0;i<numMessages;i++) {
+    numBytes = sendto(sockfd, ptr, min(bytesLeft,MAX_TRANSMIT_SIZE),0,
+		      (struct sockaddr *)&(remote_addr), remote_addr_len);
+    ptr += numBytes;
+    bytesLeft = bytesLeft - numBytes;
+  }
+
+  sprintf(tmp,"%d",STOP);
+  while ((numBytes = sendto(sockfd, tmp, strlen(tmp),0, 
+			    (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1);
+}
+
+//--------------------------------------------------------------
+int shaderApp::socketSetup() {
+  if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
+    printf("Error initializing socket!\n");
+    return -1;
+  }
+  local_port = 9999;
+  sprintf(local_ip,"192");
+  local_addr.sin_family = AF_INET;
+  local_addr.sin_port = htons(local_port);
+  local_addr.sin_addr.s_addr = get_my_ip_with_prefix(local_ip);
+  if (local_addr.sin_addr.s_addr ==0) {
+    printf("can not find matching IP\n");
+    return -1;
+  }
+
+  if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
+    printf("Error binding\n");
+    return -1;
+  }
+
+  remote_addr_len = sizeof remote_addr;
+  char sock_buffer[50];
+  int num_bytes, recv_bytes = 0;
+
+  printf("Camjet: waiting for ground station initialization\n");
+  if ( (num_bytes = recvfrom(sockfd, sock_buffer, 50, 0, 
+			     (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 ) {
+    printf("Error: recvfrom\n");
+    return -1;
+  }
+
+  printf("Camjet: got ground station initialization : %s\n",sock_buffer);
+  if ((num_bytes = sendto(sockfd, &sock_buffer, strlen(sock_buffer),0, 
+			 (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1){
+    printf("Error: sendto\n");
+    return -1;
+  }
+  printf("Camjet: done setting up sockets\n");
+  return 0;
+}
+
 //--------------------------------------------------------------
 void shaderApp::setup()
 {
+  socketSetup();
+
   ofSetLogLevel(OF_LOG_VERBOSE);
 	
   doDrawInfo	= true;
@@ -385,8 +453,6 @@ void shaderApp::setup()
 		
   filterCollection.setup(&videoGrabber.omxMaps);
   fbo.allocate(omxCameraSettings.width, omxCameraSettings.height, GL_RGBA);
-
-  imgFile.allocate(fbo.getWidth(),fbo.getHeight(), OF_IMAGE_COLOR);
 
   picnum = 0;
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());
@@ -504,3 +570,48 @@ void shaderApp::onCharacterReceived(SSHKeyListenerEventData& e)
   keyPressed((int)e.character);
 }
 
+void *get_in_addr(struct sockaddr *sa){
+  if (sa->sa_family == AF_INET){
+    return &(((struct sockaddr_in*)sa)->sin_addr);
+  }
+  return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+u_short get_in_port(struct sockaddr *sa)
+{
+  if (sa->sa_family == AF_INET) {
+    return ((struct sockaddr_in*)sa)->sin_port;
+  }
+
+  return ((struct sockaddr_in6*)sa)->sin6_port;
+}
+
+u_long get_my_ip_with_prefix(char* prefix){
+
+  struct ifaddrs * ifAddrStruct=NULL;
+  struct ifaddrs * ifa=NULL;
+  void * tmpAddrPtr=NULL;
+
+  getifaddrs(&ifAddrStruct);
+
+  for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+    if (ifa ->ifa_addr->sa_family==AF_INET) { 
+      // is a valid IP4 Address
+      tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+      char addressBuffer[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+      printf("%s IP v4 Address %s\n", ifa->ifa_name, addressBuffer); 
+
+      if (strncmp(addressBuffer,prefix,strnlen(prefix,15)) == 0)
+	return ((struct in_addr *)tmpAddrPtr)->s_addr;
+    } else if (ifa->ifa_addr->sa_family==AF_INET6) { // check it is IP6
+      // is a valid IP6 Address
+      tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+      char addressBuffer[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+      printf("%s IP v6 Address %s\n ", ifa->ifa_name, addressBuffer); 
+      printf("This function does not support IP v6 for now\n"); 
+    } 
+  }
+  if (ifAddrStruct!=NULL) freeifaddrs(ifAddrStruct);
+  return 0;
+}

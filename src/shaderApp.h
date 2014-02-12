@@ -24,13 +24,6 @@
 #include "OMXCameraSettings.h"
 #include "OMXCameraUtils.h"
 
-enum messageType {
-  START,
-  STOP
-};
-
-const int MAX_TRANSMIT_SIZE = 65500;
-
 using namespace std;
 
 class imgBuffer {

@@ -43,7 +43,6 @@ const int MODINTERVAL = 1;
 OMX_BUFFERHEADERTYPE *buf;
 OMX_BUFFERHEADERTYPE *out;
 
-
 static int
 fill_buffer_with_image(void *buf, 
 		       OMX_U32 *filledLen,

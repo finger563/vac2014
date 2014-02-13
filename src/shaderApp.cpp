@@ -6,9 +6,10 @@
 #define WRITE_BINARY_FILE 1
 
 #define SHOW_OVERLAY 1
-#define SHOW_PREVIEW 1
+#define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 0
+#define SEND_IMAGE 1
 
 #define WIDTH     640
 #define HEIGHT    480

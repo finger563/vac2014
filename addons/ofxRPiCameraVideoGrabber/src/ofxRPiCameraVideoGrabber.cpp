@@ -69,10 +69,12 @@ void ofxRPiCameraVideoGrabber::setup(OMXCameraSettings omxCameraSettings)
 		camera = engine->camera;
 	}
 
-	
+	printf("Video Grabber: camera setup\n");
 	
 	setExposureMode(OMX_ExposureControlAuto);
+	printf("Video Grabber: exposure mode set\n");
 	setMeteringMode(OMX_MeteringModeMatrix, 0, 0,  true); //OMX_MeteringModeMatrix, OMX_MeteringModeAverage, OMX_MeteringModeSpot, OMX_MeteringModeBacklit
+	printf("Video Grabber: metering mode set\n");
 	setSharpness(-50);
 	setContrast(-10);
 	setMirrorType(OMX_MirrorVertical);
@@ -82,7 +84,8 @@ void ofxRPiCameraVideoGrabber::setup(OMXCameraSettings omxCameraSettings)
 	setWhiteBalance(OMX_WhiteBalControlAuto);
 	applyImageFilter(OMX_ImageFilterNone);
 	setColorEnhancement(false);	 
-	setLEDStatus(false);
+	printf("Video Grabber: done with setup\n");
+	//setLEDStatus(false);
 	/*
 	 OMX_COMMONFLICKERCANCEL_OFF,
 	 OMX_COMMONFLICKERCANCEL_AUTO,

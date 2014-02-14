@@ -6,10 +6,11 @@
 #define WRITE_BINARY_FILE 1
 
 #define SHOW_OVERLAY 1
-#define SHOW_PREVIEW 0
+#define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 0
-#define SEND_IMAGE 1
+//#define SEND_IMAGE 1
+#define WRITE_PPM 0
 
 #define WIDTH     640
 #define HEIGHT    480
@@ -30,6 +31,45 @@ enum messageType {
 
 const int MAX_TRANSMIT_SIZE = 1500;
 const char* IP_PREFIX = "10";
+
+const char bmp_header_rgb[54] = {
+  0x42,0x4D, // "BM"
+  0,0,0,0, // SIZE
+  0,0,0,0, // unused
+  0x36,0,0,0, // 54 bytes from start of file
+  0x28,0,0,0, // 40 bytes in DIB header
+  0,0,0,0, // WIDTH
+  0,0,0,0, // HEIGHT
+  1,0,
+  0x18,0, // 24 bpp
+  0,0,0,0,
+  0,0,0,0, // SIZE OF DATA ARRAY (incl padding)
+  0x13,0x0B,0,0,
+  0x13,0x0B,0,0
+};
+
+const char bmp_header_rgba[122] = {
+  0x42,0x4D,// "BM"
+  00,0xC0,0x12,0, // SIZE
+  0,0,0,0, // unused
+  0x7A,0,0,0, // 122 bytes from start of file
+  0x6C,0,0,0, // 108 bytes in DIB header
+  0x80,0x02,0,0, // WIDTH
+  0xE0,0x01,0,0, // HEIGHT
+  0x01,0,
+  0x20,0,
+  0x03,0,0,0,
+  0,0xC0,0x12,0, // SIZE OF DATA ARRAY (incl padding)
+  0x13,0x0B,0,0,
+  0x13,0x0B,0,0,
+  0,0,0,0,
+  0,0,0,0,
+  0xFF,0,0,0,
+  0,0xFF,0,0,
+  0,0,0xFF,0,
+  0,0,0,0xFF,
+  0x20,0x6E,0x69,0x57
+};
 
 static void *write_video_function( void* ptr );
 inline double timespec_diff(const struct timespec after, const struct timespec before);
@@ -57,16 +97,26 @@ static void *write_video_function( void* ptr ) {
     while ( app->vBuffer.isEmpty() ) {
       usleep(5000);
     }
+#if WRITE_PPM
     sprintf(fname,"img%04d.ppm",id++);
     std::ofstream outfile (fname,std::ofstream::binary);
     sprintf(fname,"P6 %d %d 255 ",WIDTH,HEIGHT);
     outfile.write(fname,strlen(fname));
-    outfile.write(app->vBuffer.read(),WIDTH*HEIGHT*3);
+#else
+    sprintf(fname,"img%04d.bmp",id++);
+    std::ofstream outfile (fname,std::ofstream::binary);
+    outfile.write(bmp_header_rgba,122);
+#endif
+    outfile.write(app->vBuffer.read(),
+		  app->vBuffer.width() * app->vBuffer.width() * app->vBuffer.bytesPerPixel()
+		  );
     outfile.close();
 #if SEND_IMAGE
     if (id%SEND_MODINTERVAL==0) {
       printf("Camjet: sending image\n");
-      app->sendImage(app->vBuffer.read(),WIDTH*HEIGHT*3);
+      app->sendImage(app->vBuffer.read(),
+		     app->vBuffer.width() * app->vBuffer.width() * app->vBuffer.bytesPerPixel()
+		     );
     }
 #endif
     app->vBuffer.remove();
@@ -186,7 +236,8 @@ void shaderApp::setup()
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());
   printf("Camjet: allocated vBuffer\n");
 		
-  shader.load("shaderExample");
+  edgeShader.load("edgeShader");
+  distShader.load("distShader");
 
   fbo.begin();
   ofClear(0, 0, 0, 1);
@@ -206,15 +257,15 @@ void shaderApp::update()
   fbo.begin();
 
   ofClear(0,0,0,1);
-  shader.begin();
-  shader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
-  shader.setUniform1f("time", ofGetElapsedTimef());
-  shader.setUniform2f("resolution", WIDTH, HEIGHT);
-  shader.setUniform1f("thresh",threshold);
-  shader.setUniform1f("c_xStep",1.0/(double)WIDTH);
-  shader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
+  edgeShader.begin();
+  edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
+  edgeShader.setUniform1f("time", ofGetElapsedTimef());
+  edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
+  edgeShader.setUniform1f("thresh",threshold);
+  edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
+  edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
   videoGrabber.draw();
-  shader.end();
+  edgeShader.end();
   
   if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
     picnum++;

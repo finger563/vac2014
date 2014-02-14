@@ -237,4 +237,3 @@ void main(void)
   apply_frei_chen();
   apply_dist_trans();
 }
-

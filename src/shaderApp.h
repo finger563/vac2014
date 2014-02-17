@@ -63,8 +63,12 @@ class imgBuffer {
 #endif
       for (int i=0;i<size;i++) {
 #if USE_FBO_TO_DRAW
-	//buffer[i] = new ofPixels();
-	buffer[i].allocate(w,h,_bytesPerPixel);
+	if ( _bytesPerPixel == 3 ) {
+	  buffer[i].allocate(w,h,OF_PIXELS_RGB);
+	}
+	else if ( _bytesPerPixel == 4 ) {
+	  buffer[i].allocate(w,h,OF_PIXELS_RGBA);
+	}
 #else
 	buffer[i] = new char[w * h * _bytesPerPixel];
 #endif
@@ -91,13 +95,9 @@ class imgBuffer {
   }
 
 #if USE_FBO_TO_DRAW
-  char* read() {
-    return (char *)buffer[read_ptr].getPixels();
-  }
+  char* read() { return (char *)buffer[read_ptr].getPixels(); }
 #else
-  char* read() {
-    return buffer[read_ptr];
-  }
+  char* read() { return buffer[read_ptr]; }
 #endif
 
   void remove() {
@@ -110,6 +110,17 @@ class imgBuffer {
     //printf("exiting remove()\n");
   }
 
+  int write(ofTexture* tex) {
+    //printf("write ptr = %d\n",write_ptr);
+    tex->readToPixels(buffer[write_ptr]);
+    write_ptr++;
+    num_images++;
+    if ( write_ptr >= buffer_size ) {
+      write_ptr = 0;
+    }
+    return 0;
+  }
+
 #if USE_FBO_TO_DRAW
   int write(ofFbo* fbo) {
     //printf("write ptr = %d\n",write_ptr);
@@ -119,7 +130,6 @@ class imgBuffer {
     if ( write_ptr >= buffer_size ) {
       write_ptr = 0;
     }
-    //printf("exiting write()\n");
     return 0;
   }
 #else
@@ -146,34 +156,25 @@ class imgBuffer {
     if ( write_ptr >= buffer_size ) {
       write_ptr = 0;
     }
-    //printf("exiting write()\n");
     return 0;
   }
 #endif
 
-  bool isEmpty() {
-    //printf("is empty: %d\n",num_images <= 0);
-    return num_images <= 0;
-  }
+  bool isEmpty() { return num_images <= 0; }
 
-  bool isFull() {
-    //printf("is full: %d\n",num_images >= buffer_size);
-    return num_images >= buffer_size;
-  }
+  bool isFull() { return num_images >= buffer_size; }
 
-  int numImages() {
-    return num_images;
-  }
+  int numImages() { return num_images; }
   
-  int bytesPerPixel() {
-    return _bytesPerPixel;
-  }
-  void bytesPerPixel(int b) {
-    _bytesPerPixel = b;
-  }
+  int bytesPerPixel() { return _bytesPerPixel; }
+  void bytesPerPixel(int b) { _bytesPerPixel = b; }
 
   int width() { return _width; }
   int height() { return _height; }
+
+  ofPixels operator[](int i) {
+    return buffer[i%buffer_size];
+  }
   
  private:
   int _bytesPerPixel;

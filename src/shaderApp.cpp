@@ -3,17 +3,11 @@
 #include <fstream>
 #include <sys/time.h>
 
-#define WRITE_BINARY_FILE 1
-
-#define RENDER_IN_UPDATE 0
-
 #define SHOW_OVERLAY 1
 #define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 0
-//#define SEND_IMAGE 1
-#define WRITE_PPM 0
-
+#define BYTES_PER_PIXEL 4
 #define WIDTH     640
 #define HEIGHT    480
 
@@ -26,31 +20,10 @@ float uDelay = delay*1000000.0;// us
 const int MODINTERVAL = 1;
 const int SEND_MODINTERVAL = 20;
 
-enum messageType {
-  START,
-  STOP
-};
-
 const int MAX_TRANSMIT_SIZE = 1500;
 const char* IP_PREFIX = "10";
 
-const char bmp_header_rgb[54] = {
-  0x42,0x4D, // "BM"
-  0,0,0,0, // SIZE
-  0,0,0,0, // unused
-  0x36,0,0,0, // 54 bytes from start of file
-  0x28,0,0,0, // 40 bytes in DIB header
-  0,0,0,0, // WIDTH
-  0,0,0,0, // HEIGHT
-  1,0,
-  0x18,0, // 24 bpp
-  0,0,0,0,
-  0,0,0,0, // SIZE OF DATA ARRAY (incl padding)
-  0x13,0x0B,0,0,
-  0x13,0x0B,0,0
-};
-
-const char bmp_header_rgba[122] = {
+const char bmp_header[122] = {
   0x42,0x4D,// "BM"
   00,0xC0,0x12,0, // SIZE
   0,0,0,0, // unused
@@ -99,16 +72,18 @@ static void *write_video_function( void* ptr ) {
     while ( app->vBuffer.isEmpty() ) {
       usleep(5000);
     }
-#if WRITE_PPM
-    sprintf(fname,"img%04d.ppm",id++);
-    std::ofstream outfile (fname,std::ofstream::binary);
-    sprintf(fname,"P6 %d %d 255 ",WIDTH,HEIGHT);
-    outfile.write(fname,strlen(fname));
-#else
-    sprintf(fname,"img%04d.bmp",id++);
-    std::ofstream outfile (fname,std::ofstream::binary);
-    outfile.write(bmp_header_rgba,122);
-#endif
+    std::ofstream outfile;
+    if ( app->vBuffer.bytesPerPixel() == 3 ) {
+      sprintf(fname,"img%04d.ppm",id++);
+      outfile.open(fname,std::ofstream::binary);
+      sprintf(fname,"P6 %d %d 255 ",WIDTH,HEIGHT);
+      outfile.write(fname,strlen(fname));
+    }
+    else if ( app->vBuffer.bytesPerPixel() == 4 ) {
+      sprintf(fname,"img%04d.bmp",id++);
+      outfile.open(fname,std::ofstream::binary);
+      outfile.write(bmp_header,122);
+    }
     outfile.write(app->vBuffer.read(),
 		  app->vBuffer.width() * app->vBuffer.width() * app->vBuffer.bytesPerPixel()
 		  );
@@ -202,10 +177,6 @@ int shaderApp::socketSetup() {
 void shaderApp::setup()
 {
   socketSetup();
-  
-#if SHOW_PREVIEW
-  //ofSetupOpenGL(this->width, this->height, OF_WINDOW);
-#endif
 
   ofSetLogLevel(OF_LOG_VERBOSE);
   printf("Camjet: done setting up log level\n");
@@ -227,8 +198,8 @@ void shaderApp::setup()
   threshold = 0.1;
 
   doShader = true;
-	
-  //ofEnableAlphaBlending();
+
+  ofEnableAlphaBlending();	
   printf("Camjet: done setting up alpha blending\n");
 		
   filterCollection.setup(&videoGrabber.omxMaps);
@@ -237,39 +208,49 @@ void shaderApp::setup()
   printf("Camjet: allocated fbo\n");
 
   picnum = 0;
+  vBuffer.bytesPerPixel(BYTES_PER_PIXEL);
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());
+  int glformat__ = ofGetGlInternalFormat(vBuffer[0]);
+  printf("Camjet: format %s\n",ofGetGlInternalFormatName(glformat__).c_str());
   printf("Camjet: allocated vBuffer\n");
 		
   edgeShader.load("edgeShader");
-  //distShader.load("distShader");
 
   fbo.begin();
-  ofClear(0, 0, 0, 1);
+  ofClear(0, 0, 0, 0);
   fbo.end();
 
   frameInterval = FINTERVAL;
   pthread_create(&videoThread, NULL, write_video_function, (void *) this);
   printf("Camjet: done with setup\n");
+
+#if 0
+  GLint bits0,bits1,bits2,bits3;
+  glGetIntegerv(GL_RED_BITS, &bits0);
+  glGetIntegerv(GL_GREEN_BITS, &bits1);
+  glGetIntegerv(GL_BLUE_BITS, &bits2);
+  glGetIntegerv(GL_ALPHA_BITS, &bits3);
+  printf("bits = [ %d, %d, %d, %d ]\n",bits0,bits1,bits2,bits3);
+#endif
 }	
 
 //--------------------------------------------------------------
 void shaderApp::update()
 {
-#if RENDER_IN_UPDATE
   if(!doShader) return;
-	
-  fbo.begin();
 
-  ofClear(0,0,0,1);
-  edgeShader.begin();
-  edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
-  //edgeShader.setUniform1f("time", ofGetElapsedTimef());
-  //edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
-  edgeShader.setUniform1f("thresh",threshold);
-  edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
-  edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
-  videoGrabber.draw();
-  edgeShader.end();
+  fbo.begin();
+  {
+    ofClear(0,0,0,0);
+    //edgeShader.begin();
+    //edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
+    //edgeShader.setUniform1f("thresh",threshold);
+    //edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
+    //edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
+    videoGrabber.draw();
+    //edgeShader.end();
+  }
+  fbo.end();
   
   if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
     picnum++;
@@ -279,9 +260,6 @@ void shaderApp::update()
     vBuffer.write();
 #endif
   }
-
-  fbo.end();	
-#endif
 }
 
 //--------------------------------------------------------------
@@ -289,33 +267,6 @@ void shaderApp::draw(){
 
 #if SHOW_PREVIEW
   if (doShader) {
-#if RENDER_IN_UPDATE
-    fbo.draw(0, 0);
-#else //render in update
-    fbo.begin();
-    ofClear(0,0,0,1);
-    edgeShader.begin();
-    edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
-    //edgeShader.setUniform1f("time", ofGetElapsedTimef());
-    //edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
-    edgeShader.setUniform1f("thresh",threshold);
-    edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
-    edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
-    videoGrabber.draw();
-    edgeShader.end();
-    //fbo.draw(0,0);
-    if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
-      picnum++;
-#if USE_FBO_TO_DRAW
-      vBuffer.write(&fbo);
-#else // use fbo to draw
-      vBuffer.write();
-#endif // use fbo to draw
-    }
-
-    fbo.end();	
-#endif  // render in update
-
     fbo.draw(0,0);
   }
   else {
@@ -339,7 +290,7 @@ void shaderApp::draw(){
   if (doDrawInfo) {
     ofDrawBitmapStringHighlight(info.str(), 100, 100, ofColor::black, ofColor::yellow);
   }
-#endif
+#endif // show overlay
 }
 
 //--------------------------------------------------------------

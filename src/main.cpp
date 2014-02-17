@@ -1,8 +1,10 @@
 #include "ofMain.h"
-#include "ofGLProgrammableRenderer.h"
-#include "ofAppNoWindow.h"
 
 #include "shaderApp.h"
+
+#include "ofGLProgrammableRenderer.h"
+//#include "ofAppNoWindow.h"
+
 
 int width = 640;
 int height = 480;

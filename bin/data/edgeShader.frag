@@ -10,19 +10,19 @@ varying vec2 v_texCoords[9];
 //passed in by
 //shader.setUniformTexture("tex0", sourceImage.getTextureReference(), sourceImage.getTextureReference().texData.textureID);
 uniform sampler2D   tex0;
-uniform sampler2D   drawtex;
+//uniform sampler2D   drawtex;
 
 uniform float thresh;
 
 //width and height that we are working with
 //passed in by
 //shader.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
-uniform vec2        resolution;
+//uniform vec2        resolution;
 
 //a changing value to work with
 //passed in by
 //shader.setUniform1f("time", ofGetElapsedTimef());
-uniform float       time;
+//uniform float       time;
 
 const mat3 g0=1.0/(2.0*sqrt(2.0)) * mat3( 1.0, sqrt(2.0), 1.0, 0.0, 0.0, 0.0, -1.0, -sqrt(2.0), -1.0 );
 const mat3 g1=1.0/(2.0*sqrt(2.0)) * mat3( 1.0, 0.0, -1.0, sqrt(2.0), 0.0, -sqrt(2.0), 1.0, 0.0, -1.0 );
@@ -205,13 +205,13 @@ void apply_frei_chen() {
 
   float alpha = 1.0;
   if (r == 1.0) {
-    alpha=alpha/2.0;
+    alpha=alpha - 0.45;
   }
   if (b == 1.0) {
-    alpha = alpha/2.0;
+    alpha = alpha - 0.25;
   }
   if (g == 1.0 ) {
-    alpha = alpha/2.0;
+    alpha = alpha - 0.3;
   }
 
   //vec4 rgb = gray;

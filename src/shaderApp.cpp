@@ -5,6 +5,8 @@
 
 #define WRITE_BINARY_FILE 1
 
+#define RENDER_IN_UPDATE 0
+
 #define SHOW_OVERLAY 1
 #define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
@@ -213,6 +215,8 @@ void shaderApp::setup()
   consoleListener.setup(this);
   printf("Camjet: done setting up console listener\n");
 
+  ofSetPixelStorei( this->width, 8, 4 );
+
   omxCameraSettings.width = this->width;
   omxCameraSettings.height = this->height;
   omxCameraSettings.framerate = 30;
@@ -224,7 +228,7 @@ void shaderApp::setup()
 
   doShader = true;
 	
-  ofEnableAlphaBlending();
+  //ofEnableAlphaBlending();
   printf("Camjet: done setting up alpha blending\n");
 		
   filterCollection.setup(&videoGrabber.omxMaps);
@@ -237,7 +241,7 @@ void shaderApp::setup()
   printf("Camjet: allocated vBuffer\n");
 		
   edgeShader.load("edgeShader");
-  distShader.load("distShader");
+  //distShader.load("distShader");
 
   fbo.begin();
   ofClear(0, 0, 0, 1);
@@ -251,7 +255,7 @@ void shaderApp::setup()
 //--------------------------------------------------------------
 void shaderApp::update()
 {
-
+#if RENDER_IN_UPDATE
   if(!doShader) return;
 	
   fbo.begin();
@@ -259,8 +263,8 @@ void shaderApp::update()
   ofClear(0,0,0,1);
   edgeShader.begin();
   edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
-  edgeShader.setUniform1f("time", ofGetElapsedTimef());
-  edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
+  //edgeShader.setUniform1f("time", ofGetElapsedTimef());
+  //edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
   edgeShader.setUniform1f("thresh",threshold);
   edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
   edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
@@ -269,24 +273,55 @@ void shaderApp::update()
   
   if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
     picnum++;
+#if USE_FBO_TO_DRAW
+    vBuffer.write(&fbo);
+#else
     vBuffer.write();
+#endif
   }
 
   fbo.end();	
+#endif
 }
-
 
 //--------------------------------------------------------------
 void shaderApp::draw(){
 
 #if SHOW_PREVIEW
   if (doShader) {
+#if RENDER_IN_UPDATE
     fbo.draw(0, 0);
+#else //render in update
+    fbo.begin();
+    ofClear(0,0,0,1);
+    edgeShader.begin();
+    edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
+    //edgeShader.setUniform1f("time", ofGetElapsedTimef());
+    //edgeShader.setUniform2f("resolution", WIDTH, HEIGHT);
+    edgeShader.setUniform1f("thresh",threshold);
+    edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
+    edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
+    videoGrabber.draw();
+    edgeShader.end();
+    //fbo.draw(0,0);
+    if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
+      picnum++;
+#if USE_FBO_TO_DRAW
+      vBuffer.write(&fbo);
+#else // use fbo to draw
+      vBuffer.write();
+#endif // use fbo to draw
+    }
+
+    fbo.end();	
+#endif  // render in update
+
+    fbo.draw(0,0);
   }
   else {
     videoGrabber.draw();
   }
-#endif
+#endif // show preview
 
 #if SHOW_OVERLAY
   stringstream info;

@@ -17,12 +17,12 @@ const int FRAMERATE = 10;// FPS
 float delay = 1.0/(float)FRAMERATE;// s
 float uDelay = delay*1000000.0;// us
 
-const int MODINTERVAL = 1;
 const int SEND_MODINTERVAL = 20;
 
 const int MAX_TRANSMIT_SIZE = 1500;
 const char* IP_PREFIX = "10";
 
+// for RGBA images
 const char bmp_header[122] = {
   0x42,0x4D,// "BM"
   00,0xC0,0x12,0, // SIZE
@@ -255,11 +255,7 @@ void shaderApp::update(){
     process = !process;
     clock_gettime(CLOCK_REALTIME,&previous);
     picnum++;
-#if USE_FBO_TO_DRAW
-    vBuffer.write(&fbo);
-#else
     vBuffer.write();
-#endif
   }
 
   fbo.end();

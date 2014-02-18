@@ -26,8 +26,6 @@
 
 using namespace std;
 
-#define USE_FBO_TO_DRAW 0
-
 class imgBuffer {
  
  public:
@@ -43,45 +41,25 @@ class imgBuffer {
 
   ~imgBuffer() {
     if (buffer != NULL){
-#if USE_FBO_TO_DRAW
-#else
       for (int i =0;i<buffer_size;i++) {
 	if (buffer[i] != NULL)
 	  delete[] buffer[i];
       }
-#endif
       delete[] buffer;
     }
   }
 
   int allocate(int size,int w, int h) {
     try {
-#if USE_FBO_TO_DRAW
-      buffer = new ofPixels[size]();
-#else
       buffer = new char*[size];
-#endif
       for (int i=0;i<size;i++) {
-#if USE_FBO_TO_DRAW
-	if ( _bytesPerPixel == 3 ) {
-	  buffer[i].allocate(w,h,OF_PIXELS_RGB);
-	}
-	else if ( _bytesPerPixel == 4 ) {
-	  buffer[i].allocate(w,h,OF_PIXELS_RGBA);
-	}
-#else
 	buffer[i] = new char[w * h * _bytesPerPixel];
-#endif
       }
     }
     catch ( ... ) {
       printf("Error: couldn't allocate image buffer of size %d\n",size);
       if (buffer != NULL)
-#if USE_FBO_TO_DRAW
-	delete buffer;
-#else
 	delete[] buffer;
-#endif
       return -1;
     }
     _width = w;
@@ -95,11 +73,7 @@ class imgBuffer {
     return 0;
   }
 
-#if USE_FBO_TO_DRAW
-  char* read() { return (char *)buffer[read_ptr].getPixels(); }
-#else
   char* read() { return buffer[read_ptr]; }
-#endif
 
   void remove() {
     //printf("read ptr = %d\n",read_ptr);
@@ -111,29 +85,6 @@ class imgBuffer {
     //printf("exiting remove()\n");
   }
 
-#if USE_FBO_TO_DRAW
-  int write(ofTexture* tex) {
-    //printf("write ptr = %d\n",write_ptr);
-    tex->readToPixels(buffer[write_ptr]);
-    write_ptr++;
-    num_images++;
-    if ( write_ptr >= buffer_size ) {
-      write_ptr = 0;
-    }
-    return 0;
-  }
-
-  int write(ofFbo* fbo) {
-    //printf("write ptr = %d\n",write_ptr);
-    fbo->readToPixels(buffer[write_ptr]);
-    write_ptr++;
-    num_images++;
-    if ( write_ptr >= buffer_size ) {
-      write_ptr = 0;
-    }
-    return 0;
-  }
-#else
   int write() {
     //printf("write ptr = %d\n",write_ptr);
     if ( _bytesPerPixel == 3 ) {
@@ -159,7 +110,6 @@ class imgBuffer {
     }
     return 0;
   }
-#endif
 
   bool isEmpty() { return num_images <= 0; }
 
@@ -175,15 +125,9 @@ class imgBuffer {
   int width() { return _width; }
   int height() { return _height; }
 
-#if USE_FBO_TO_DRAW
-  ofPixels operator[](int i) {
-    return buffer[i%buffer_size];
-  }
-#else
   char* operator[](int i) {
     return buffer[i%buffer_size];
   }
-#endif
   
  private:
   int _bytesPerPixel;
@@ -191,11 +135,7 @@ class imgBuffer {
   int num_images;
   int buffer_size;
   int read_ptr,write_ptr;
-#if USE_FBO_TO_DRAW
-  ofPixels* buffer;
-#else
   char** buffer;
-#endif
 };
 
 class shaderApp : public ofBaseApp, public SSHKeyListener{

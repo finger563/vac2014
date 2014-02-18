@@ -26,7 +26,7 @@
 
 using namespace std;
 
-#define USE_FBO_TO_DRAW 1
+#define USE_FBO_TO_DRAW 0
 
 class imgBuffer {
  
@@ -86,6 +86,7 @@ class imgBuffer {
     }
     _width = w;
     _height = h;
+    _size = _width * _height * _bytesPerPixel;
     buffer_size = size;
     printf("buffer size : %d\n",buffer_size);
     read_ptr = 0;
@@ -110,6 +111,7 @@ class imgBuffer {
     //printf("exiting remove()\n");
   }
 
+#if USE_FBO_TO_DRAW
   int write(ofTexture* tex) {
     //printf("write ptr = %d\n",write_ptr);
     tex->readToPixels(buffer[write_ptr]);
@@ -121,7 +123,6 @@ class imgBuffer {
     return 0;
   }
 
-#if USE_FBO_TO_DRAW
   int write(ofFbo* fbo) {
     //printf("write ptr = %d\n",write_ptr);
     fbo->readToPixels(buffer[write_ptr]);
@@ -169,16 +170,24 @@ class imgBuffer {
   int bytesPerPixel() { return _bytesPerPixel; }
   void bytesPerPixel(int b) { _bytesPerPixel = b; }
 
+  int size() { return _size; }
+
   int width() { return _width; }
   int height() { return _height; }
 
+#if USE_FBO_TO_DRAW
   ofPixels operator[](int i) {
     return buffer[i%buffer_size];
   }
+#else
+  char* operator[](int i) {
+    return buffer[i%buffer_size];
+  }
+#endif
   
  private:
   int _bytesPerPixel;
-  int _width,_height;
+  int _width,_height,_size;
   int num_images;
   int buffer_size;
   int read_ptr,write_ptr;
@@ -218,6 +227,7 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   ofShader blurShader;
   ofShader edgeShader;
   ofShader distShader;
+  ofShader passThrough;
   bool doShader;
 
   float threshold;  // threshold for image detection

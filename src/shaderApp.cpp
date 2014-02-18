@@ -4,10 +4,10 @@
 #include <sys/time.h>
 
 #define SHOW_OVERLAY 1
-#define SHOW_PREVIEW 1
+#define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 0
-#define BYTES_PER_PIXEL 4
+#define BYTES_PER_PIXEL 3
 #define WIDTH     640
 #define HEIGHT    480
 
@@ -76,7 +76,7 @@ static void *write_video_function( void* ptr ) {
     if ( app->vBuffer.bytesPerPixel() == 3 ) {
       sprintf(fname,"img%04d.ppm",id++);
       outfile.open(fname,std::ofstream::binary);
-      sprintf(fname,"P6 %d %d 255 ",WIDTH,HEIGHT);
+      sprintf(fname,"P6 %d %d 255 ",app->vBuffer.width(),app->vBuffer.height());
       outfile.write(fname,strlen(fname));
     }
     else if ( app->vBuffer.bytesPerPixel() == 4 ) {
@@ -85,15 +85,13 @@ static void *write_video_function( void* ptr ) {
       outfile.write(bmp_header,122);
     }
     outfile.write(app->vBuffer.read(),
-		  app->vBuffer.width() * app->vBuffer.width() * app->vBuffer.bytesPerPixel()
-		  );
+		  app->vBuffer.size());
     outfile.close();
 #if SEND_IMAGE
     if (id%SEND_MODINTERVAL==0) {
       printf("Camjet: sending image\n");
       app->sendImage(app->vBuffer.read(),
-		     app->vBuffer.width() * app->vBuffer.width() * app->vBuffer.bytesPerPixel()
-		     );
+		     app->vBuffer.size());
     }
 #endif
     app->vBuffer.remove();
@@ -195,7 +193,7 @@ void shaderApp::setup()
   videoGrabber.setup(omxCameraSettings);
   printf("Camjet: done setting up camera\n");
 	
-  threshold = 0.1;
+  threshold = 0.15;
 
   doShader = true;
 
@@ -210,11 +208,11 @@ void shaderApp::setup()
   picnum = 0;
   vBuffer.bytesPerPixel(BYTES_PER_PIXEL);
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());
-  int glformat__ = ofGetGlInternalFormat(vBuffer[0]);
-  printf("Camjet: format %s\n",ofGetGlInternalFormatName(glformat__).c_str());
   printf("Camjet: allocated vBuffer\n");
 		
   edgeShader.load("edgeShader");
+  passThrough.load("passThrough");
+  printf("Camjet: Loaded shaders\n");
 
   fbo.begin();
   ofClear(0, 0, 0, 0);
@@ -223,36 +221,39 @@ void shaderApp::setup()
   frameInterval = FINTERVAL;
   pthread_create(&videoThread, NULL, write_video_function, (void *) this);
   printf("Camjet: done with setup\n");
-
-#if 0
-  GLint bits0,bits1,bits2,bits3;
-  glGetIntegerv(GL_RED_BITS, &bits0);
-  glGetIntegerv(GL_GREEN_BITS, &bits1);
-  glGetIntegerv(GL_BLUE_BITS, &bits2);
-  glGetIntegerv(GL_ALPHA_BITS, &bits3);
-  printf("bits = [ %d, %d, %d, %d ]\n",bits0,bits1,bits2,bits3);
-#endif
 }	
 
 //--------------------------------------------------------------
-void shaderApp::update()
-{
-  if(!doShader) return;
+void shaderApp::update(){
+  static timespec previous = {0,0}, now = {0,0};
+  static double diff = -1;
+  static bool process = true;
 
   fbo.begin();
-  {
-    ofClear(0,0,0,0);
-    //edgeShader.begin();
-    //edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
-    //edgeShader.setUniform1f("thresh",threshold);
-    //edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
-    //edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
+  ofClear(0,0,0,0);
+
+  clock_gettime(CLOCK_REALTIME,&now);
+  diff = timespec_diff(now,previous);
+
+  if ( process ) {
+    edgeShader.begin();
+    edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
+    edgeShader.setUniform1f("thresh",threshold);
+    edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
+    edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
     videoGrabber.draw();
-    //edgeShader.end();
+    edgeShader.end();
   }
-  fbo.end();
+  else {
+    passThrough.begin();
+    passThrough.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
+    videoGrabber.draw();
+    passThrough.end();
+  }
   
-  if ( !vBuffer.isFull() && ofGetFrameNum() % MODINTERVAL == 0 ) {
+  if ( !vBuffer.isFull() && diff >= delay ) {
+    process = !process;
+    clock_gettime(CLOCK_REALTIME,&previous);
     picnum++;
 #if USE_FBO_TO_DRAW
     vBuffer.write(&fbo);
@@ -260,6 +261,8 @@ void shaderApp::update()
     vBuffer.write();
 #endif
   }
+
+  fbo.end();
 }
 
 //--------------------------------------------------------------

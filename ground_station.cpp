@@ -28,7 +28,8 @@ using namespace std;
 char* recvImage() {
   char* data = NULL;
   
-  char tmpbuf[50];
+  char tmpbuf[MAXBUFLEN];
+  memset(tmpbuf,0,MAXBUFLEN);
   int imgSize = 0;
   int recvBytes = 0;
   bool recvEnd = false;
@@ -36,10 +37,10 @@ char* recvImage() {
 
   bool recvStart = false;
   while ( !recvStart ) {
-    while ( (recvBytes = recvfrom(sockfd, tmpbuf, 50, 0, 
-				  (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 );
+    while ( (recvBytes = recvfrom(sockfd, tmpbuf, MAXBUFLEN, 0, 
+				  (struct sockaddr *) &remote_addr, &remote_addr_len) ) <= 0 );
     char *p = strtok(tmpbuf,",");
-    if ( !strcmp(p,"START") ){
+    if ( p != NULL && !strcmp(p,"START") ){
       recvStart = true;
       p = strtok(NULL,","); // want second argument
       imgSize = atoi(p);
@@ -48,7 +49,7 @@ char* recvImage() {
         return NULL;
       data = new char[imgSize];
       while (totalBytesReceived < imgSize && !recvEnd) {
-        recvBytes = recvfrom(sockfd, data+totalBytesReceived, MAXBUFLEN, 0, 
+        recvBytes = recvfrom(sockfd, data+totalBytesReceived, min(MAXBUFLEN,imgSize-totalBytesReceived), 0, 
                             (struct sockaddr *) &remote_addr, &remote_addr_len);
         //printf("Ground Station: received %d bytes\n",recvBytes);
         totalBytesReceived += recvBytes;

@@ -105,12 +105,6 @@ int main(int argc, char **argv)
     delete data;
   }
 
-  char * data;
-  while (true) {
-    data = recvImage();
-    printf("Ground Station: received image!\n");
-  }
-
   exit(EXIT_SUCCESS);
 
   return 0;

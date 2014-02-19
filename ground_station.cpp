@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     outfile.write(fname,strlen(fname));
     outfile.write(data,640*480*3);
     outfile.close();
-    printf("Ground Station: wrote image!\n");
+    printf("Ground Station: wrote image %d!\n",imgnum);
     delete data;
   }
 

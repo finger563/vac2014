@@ -6,20 +6,19 @@
 #define SHOW_OVERLAY 1
 #define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
-#define SEND_IMAGE 0
+#define SEND_IMAGE 1
 #define BYTES_PER_PIXEL 3
-#define WIDTH     640
-#define HEIGHT    480
+#define SEND_SIZE (640*480*3)
 
 const int FINTERVAL = 10;
 const int BUFFER_LENGTH = 30;
-const int FRAMERATE = 10;// FPS
+const int FRAMERATE = 20;// FPS
 float delay = 1.0/(float)FRAMERATE;// s
 float uDelay = delay*1000000.0;// us
 
-const int SEND_MODINTERVAL = 20;
+const int SEND_MODINTERVAL = FRAMERATE / 5;
 
-const int MAX_TRANSMIT_SIZE = 1500;
+const int MAX_TRANSMIT_SIZE = 10240;
 const char* IP_PREFIX = "10";
 
 // for RGBA images
@@ -47,10 +46,38 @@ const char bmp_header[122] = {
 };
 
 static void *write_video_function( void* ptr );
+static void *send_image_function( void* ptr );
+
 inline double timespec_diff(const struct timespec after, const struct timespec before);
 void *get_in_addr(struct sockaddr *sa);
 u_short get_in_port(struct sockaddr *sa);
 u_long get_my_ip_with_prefix(char* prefix);
+
+//--------------------------------------------------------------
+static void *send_image_function( void* ptr ) {
+  shaderApp* app;
+  app = (shaderApp *) ptr;
+
+  int size = app->sendSize;
+  char * rImg = app->vBuffer.read();
+
+  char *buff = new char[size];
+  //  if ( size == app->vBuffer.size() ) {
+  //  memcpy(rImg, buff, size);
+  //}
+  //else {
+    int stride = app->vBuffer.size() / size;
+    int rPos = 0;
+    for (int wPos = 0; wPos < size; wPos++) {
+      buff[wPos] = rImg[rPos];
+      rPos += stride;
+    }
+    //}
+
+  printf("Camjet: sending image\n");
+  app->sendImage(buff, size);
+  app->readyToSend = true;
+}
 
 //--------------------------------------------------------------
 static void *write_video_function( void* ptr ) {
@@ -88,10 +115,10 @@ static void *write_video_function( void* ptr ) {
 		  app->vBuffer.size());
     outfile.close();
 #if SEND_IMAGE
-    if (id%SEND_MODINTERVAL==0) {
-      printf("Camjet: sending image\n");
-      app->sendImage(app->vBuffer.read(),
-		     app->vBuffer.size());
+    //if (id%SEND_MODINTERVAL==0) {
+    if ( app->readyToSend ) {
+      app->readyToSend = false;
+      pthread_create(&app->sendThread, NULL, send_image_function, (void *) app);
     }
 #endif
     app->vBuffer.remove();
@@ -132,7 +159,7 @@ void shaderApp::sendImage(char *img,int size) {
 //--------------------------------------------------------------
 int shaderApp::socketSetup() {
   if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
-    printf("Error initializing socket!\n");
+    printf("Camjet: ERROR - initializing socket!\n");
     return -1;
   }
   local_port = 9999;
@@ -141,12 +168,12 @@ int shaderApp::socketSetup() {
   local_addr.sin_port = htons(local_port);
   local_addr.sin_addr.s_addr = get_my_ip_with_prefix(local_ip);
   if (local_addr.sin_addr.s_addr ==0) {
-    printf("can not find matching IP\n");
+    printf("Camjet: ERROR - can not find matching IP\n");
     return -1;
   }
 
   if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
-    printf("Error binding\n");
+    printf("Camjet: ERROR - binding\n");
     return -1;
   }
 
@@ -157,24 +184,25 @@ int shaderApp::socketSetup() {
   printf("Camjet: waiting for ground station initialization\n");
   if ( (num_bytes = recvfrom(sockfd, sock_buffer, 50, 0, 
 			     (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 ) {
-    printf("Error: recvfrom\n");
+    printf("Camjet: ERROR - recvfrom\n");
     return -1;
   }
 
   printf("Camjet: got ground station initialization : %s\n",sock_buffer);
   if ((num_bytes = sendto(sockfd, &sock_buffer, strlen(sock_buffer),0, 
 			 (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1){
-    printf("Error: sendto\n");
+    printf("Camjet: ERROR - sendto\n");
     return -1;
   }
-  printf("Camjet: done setting up sockets\n");
+  printf("Camjet: ERROR - done setting up sockets\n");
   return 0;
 }
 
 //--------------------------------------------------------------
 void shaderApp::setup()
 {
-  socketSetup();
+  if ( socketSetup() )
+    ofExit(-1);
 
   ofSetLogLevel(OF_LOG_VERBOSE);
   printf("Camjet: done setting up log level\n");
@@ -220,6 +248,8 @@ void shaderApp::setup()
 
   frameInterval = FINTERVAL;
   pthread_create(&videoThread, NULL, write_video_function, (void *) this);
+  sendSize = SEND_SIZE;
+  readyToSend = true;
   printf("Camjet: done with setup\n");
 }	
 
@@ -239,8 +269,8 @@ void shaderApp::update(){
     edgeShader.begin();
     edgeShader.setUniformTexture("tex0", videoGrabber.getTextureReference(), videoGrabber.getTextureID());
     edgeShader.setUniform1f("thresh",threshold);
-    edgeShader.setUniform1f("c_xStep",1.0/(double)WIDTH);
-    edgeShader.setUniform1f("c_yStep",1.0/(double)HEIGHT);
+    edgeShader.setUniform1f("c_xStep",1.0/(double)width);
+    edgeShader.setUniform1f("c_yStep",1.0/(double)height);
     videoGrabber.draw();
     edgeShader.end();
   }

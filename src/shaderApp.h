@@ -190,7 +190,10 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   int frameInterval;  // how many images make up a video?
   imgBuffer vBuffer;  // image buffer for video
 
-  pthread_t imageThread;
+  pthread_t sendThread;
+  bool readyToSend;
+  int sendSize;
+
   pthread_t videoThread;
 
   OMXCameraSettings omxCameraSettings;

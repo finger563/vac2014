@@ -62,17 +62,12 @@ static void *send_image_function( void* ptr ) {
   char * rImg = app->vBuffer.read();
 
   char *buff = new char[size];
-  //  if ( size == app->vBuffer.size() ) {
-  //  memcpy(rImg, buff, size);
-  //}
-  //else {
-    int stride = app->vBuffer.size() / size;
-    int rPos = 0;
-    for (int wPos = 0; wPos < size; wPos++) {
-      buff[wPos] = rImg[rPos];
-      rPos += stride;
-    }
-    //}
+  int stride = app->vBuffer.size() / size;
+  int rPos = 0;
+  for (int wPos = 0; wPos < size; wPos++) {
+    buff[wPos] = rImg[rPos];
+    rPos += stride;
+  }
 
   printf("Camjet: sending image\n");
   app->sendImage(buff, size);

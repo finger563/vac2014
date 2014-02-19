@@ -31,6 +31,7 @@ class imgBuffer {
  public:
 
   imgBuffer() {
+    _bytesPerPixel = 4;
     buffer = NULL;
     read_ptr = -1;
     write_ptr = -1;
@@ -52,7 +53,7 @@ class imgBuffer {
     try {
       buffer = new char*[size];
       for (int i=0;i<size;i++) {
-	buffer[i] = new char[w * h * 3];
+	buffer[i] = new char[w * h * _bytesPerPixel];
       }
     }
     catch ( ... ) {
@@ -61,8 +62,9 @@ class imgBuffer {
 	delete[] buffer;
       return -1;
     }
-    width = w;
-    height = h;
+    _width = w;
+    _height = h;
+    _size = _width * _height * _bytesPerPixel;
     buffer_size = size;
     printf("buffer size : %d\n",buffer_size);
     read_ptr = 0;
@@ -71,9 +73,7 @@ class imgBuffer {
     return 0;
   }
 
-  char* read() {
-    return buffer[read_ptr];
-  }
+  char* read() { return buffer[read_ptr]; }
 
   void remove() {
     //printf("read ptr = %d\n",read_ptr);
@@ -87,35 +87,51 @@ class imgBuffer {
 
   int write() {
     //printf("write ptr = %d\n",write_ptr);
-    glReadPixels(0, 0,
-		 width,height,
-		 GL_RGB,GL_UNSIGNED_BYTE,
-		 buffer[write_ptr]);
+    if ( _bytesPerPixel == 3 ) {
+      glReadPixels(0, 0,
+		   _width,_height,
+		   GL_RGB,GL_UNSIGNED_BYTE,
+		   buffer[write_ptr]);
+    }
+    else if ( _bytesPerPixel == 4 ) {
+      glReadPixels(0, 0,
+		   _width,_height,
+		   GL_RGBA,GL_UNSIGNED_BYTE,
+		   buffer[write_ptr]);
+    }
+    else {
+      printf("Error: Image format unsupported : BPP = %d\n", _bytesPerPixel);
+      return -1;
+    }
     write_ptr++;
     num_images++;
     if ( write_ptr >= buffer_size ) {
       write_ptr = 0;
     }
-    //printf("exiting write()\n");
     return 0;
   }
 
-  bool isEmpty() {
-    //printf("is empty: %d\n",num_images <= 0);
-    return num_images <= 0;
-  }
+  bool isEmpty() { return num_images <= 0; }
 
-  bool isFull() {
-    //printf("is full: %d\n",num_images >= buffer_size);
-    return num_images >= buffer_size;
-  }
+  bool isFull() { return num_images >= buffer_size; }
 
-  int numImages() {
-    return num_images;
+  int numImages() { return num_images; }
+  
+  int bytesPerPixel() { return _bytesPerPixel; }
+  void bytesPerPixel(int b) { _bytesPerPixel = b; }
+
+  int size() { return _size; }
+
+  int width() { return _width; }
+  int height() { return _height; }
+
+  char* operator[](int i) {
+    return buffer[i%buffer_size];
   }
   
  private:
-  int width,height;
+  int _bytesPerPixel;
+  int _width,_height,_size;
   int num_images;
   int buffer_size;
   int read_ptr,write_ptr;
@@ -148,7 +164,10 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   bool doDrawInfo;
 	
   ofFbo fbo;
-  ofShader shader;
+  ofShader blurShader;
+  ofShader edgeShader;
+  ofShader distShader;
+  ofShader passThrough;
   bool doShader;
 
   float threshold;  // threshold for image detection
@@ -171,7 +190,10 @@ class shaderApp : public ofBaseApp, public SSHKeyListener{
   int frameInterval;  // how many images make up a video?
   imgBuffer vBuffer;  // image buffer for video
 
-  pthread_t imageThread;
+  pthread_t sendThread;
+  bool readyToSend;
+  int sendSize;
+
   pthread_t videoThread;
 
   OMXCameraSettings omxCameraSettings;

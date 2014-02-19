@@ -21,6 +21,7 @@ void TextureEngine::setup(OMXCameraSettings omxCameraSettings)
 {
 	this->omxCameraSettings = omxCameraSettings;
 	generateEGLImage();
+	printf("Texture Engine: generated EGL image\n");
 	
 	OMX_ERRORTYPE error = OMX_ErrorNone;
 	
@@ -34,6 +35,8 @@ void TextureEngine::setup(OMXCameraSettings omxCameraSettings)
 	{
 		ofLog(OF_LOG_ERROR, "camera OMX_GetHandle FAIL error: 0x%08x", error);
 	}
+
+	printf("Texture Engine: got handle to camera\n");
 	
 	OMXCameraUtils::disableAllPortsForComponent(&camera);
 	

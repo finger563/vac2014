@@ -33,6 +33,7 @@ char* recvImage() {
   int recvBytes = 0;
   bool recvEnd = false;
   int totalBytesReceived = 0;
+
   bool recvStart = false;
   while ( !recvStart ) {
     while ( (recvBytes = recvfrom(sockfd, tmpbuf, 50, 0, 
@@ -102,6 +103,12 @@ int main(int argc, char **argv)
     outfile.close();
     printf("Ground Station: wrote image!\n");
     delete data;
+  }
+
+  char * data;
+  while (true) {
+    data = recvImage();
+    printf("Ground Station: received image!\n");
   }
 
   exit(EXIT_SUCCESS);

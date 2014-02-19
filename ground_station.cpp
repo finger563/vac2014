@@ -11,7 +11,7 @@
 
 #define MAXBUFLEN 10240
 
-char *hostname = "10.1.1.1";
+char *hostname = "10.1.1.2";
 int server_portno = 9999;
 
 int sockfd;
@@ -28,7 +28,8 @@ using namespace std;
 char* recvImage() {
   char* data = NULL;
   
-  char tmpbuf[50];
+  char tmpbuf[MAXBUFLEN];
+  memset(tmpbuf,0,MAXBUFLEN);
   int imgSize = 0;
   int recvBytes = 0;
   bool recvEnd = false;
@@ -36,24 +37,24 @@ char* recvImage() {
 
   bool recvStart = false;
   while ( !recvStart ) {
-    while ( (recvBytes = recvfrom(sockfd, tmpbuf, 50, 0, 
-				  (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 );
+    while ( (recvBytes = recvfrom(sockfd, tmpbuf, MAXBUFLEN, 0, 
+				  (struct sockaddr *) &remote_addr, &remote_addr_len) ) <= 0 );
     char *p = strtok(tmpbuf,",");
-    if ( !strcmp(p,"START") ){
+    if ( p != NULL && !strcmp(p,"START") ){
       recvStart = true;
       p = strtok(NULL,","); // want second argument
       imgSize = atoi(p);
       printf("Ground Station: image size = %d\n",imgSize);
       if ( imgSize <= 0 )
-	return NULL;
+        return NULL;
       data = new char[imgSize];
       while (totalBytesReceived < imgSize && !recvEnd) {
-	recvBytes = recvfrom(sockfd, data+totalBytesReceived, MAXBUFLEN, 0, 
-			     (struct sockaddr *) &remote_addr, &remote_addr_len);
-	//printf("Ground Station: received %d bytes\n",recvBytes);
-	totalBytesReceived += recvBytes;
-	if (!strcmp(data+totalBytesReceived,"END"))
-	  recvEnd = true;
+        recvBytes = recvfrom(sockfd, data+totalBytesReceived, min(MAXBUFLEN,imgSize-totalBytesReceived), 0, 
+                            (struct sockaddr *) &remote_addr, &remote_addr_len);
+        //printf("Ground Station: received %d bytes\n",recvBytes);
+        totalBytesReceived += recvBytes;
+        if (!strcmp(data+totalBytesReceived,"END"))
+          recvEnd = true;
       }
     }
   }
@@ -101,14 +102,8 @@ int main(int argc, char **argv)
     outfile.write(fname,strlen(fname));
     outfile.write(data,640*480*3);
     outfile.close();
-    printf("Ground Station: wrote image!\n");
-    delete[] data;
-  }
-
-  char * data;
-  while (true) {
-    data = recvImage();
-    printf("Ground Station: received image!\n");
+    printf("Ground Station: wrote image %d!\n",imgnum);
+    delete data;
   }
 
   exit(EXIT_SUCCESS);

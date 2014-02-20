@@ -4,9 +4,9 @@
 #include <sys/time.h>
 
 #define SHOW_OVERLAY 1
-#define SHOW_PREVIEW 0
+#define SHOW_PREVIEW 1
 #define SLEEP_DELAY 1
-#define SEND_IMAGE 1
+#define SEND_IMAGE 0
 #define BYTES_PER_PIXEL 3
 #define SEND_SIZE (640*480*3)
 
@@ -110,7 +110,6 @@ static void *write_video_function( void* ptr ) {
 		  app->vBuffer.size());
     outfile.close();
 #if SEND_IMAGE
-    //if (id%SEND_MODINTERVAL==0) {
     if ( app->readyToSend ) {
       app->readyToSend = false;
       pthread_create(&app->sendThread, NULL, send_image_function, (void *) app);
@@ -196,8 +195,10 @@ int shaderApp::socketSetup() {
 //--------------------------------------------------------------
 void shaderApp::setup()
 {
+#if SEND_IMAGE
   if ( socketSetup() )
     ofExit(-1);
+#endif
 
   ofSetLogLevel(OF_LOG_VERBOSE);
   printf("Camjet: done setting up log level\n");
@@ -235,6 +236,7 @@ void shaderApp::setup()
 		
   edgeShader.load("edgeShader");
   passThrough.load("passThrough");
+  distShader.load("distShader");
   printf("Camjet: Loaded shaders\n");
 
   fbo.begin();
@@ -268,6 +270,19 @@ void shaderApp::update(){
     edgeShader.setUniform1f("c_yStep",1.0/(double)height);
     videoGrabber.draw();
     edgeShader.end();
+#if 1
+    int NUM_SHADER_ITERATIONS = 7;
+    for (int i=0; i < NUM_SHADER_ITERATIONS; i++) {
+      fbo.end();
+      fbo.begin();
+      distShader.begin();
+      //distShader.setUniformTexture("tex0", fbo.getTextureReference(), fbo.getDefaultTextureIndex());
+      fbo.draw(0,0);
+      distShader.setUniform1f("c_xStep",1.0/(double)width);
+      distShader.setUniform1f("c_yStep",1.0/(double)height);
+      distShader.end();
+    }
+#endif
   }
   else {
     passThrough.begin();

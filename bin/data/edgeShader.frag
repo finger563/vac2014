@@ -5,24 +5,8 @@ varying vec2 v_texCoord;
 varying vec2 v_texCoords[9];
 
 //These are variables we set in our ofApp using the ofShader API
-
-//our texture reference
-//passed in by
-//shader.setUniformTexture("tex0", sourceImage.getTextureReference(), sourceImage.getTextureReference().texData.textureID);
 uniform sampler2D   tex0;
-//uniform sampler2D   drawtex;
-
 uniform float thresh;
-
-//width and height that we are working with
-//passed in by
-//shader.setUniform2f("resolution", ofGetWidth(), ofGetHeight());
-//uniform vec2        resolution;
-
-//a changing value to work with
-//passed in by
-//shader.setUniform1f("time", ofGetElapsedTimef());
-//uniform float       time;
 
 const mat3 g0=1.0/(2.0*sqrt(2.0)) * mat3( 1.0, sqrt(2.0), 1.0, 0.0, 0.0, 0.0, -1.0, -sqrt(2.0), -1.0 );
 const mat3 g1=1.0/(2.0*sqrt(2.0)) * mat3( 1.0, 0.0, -1.0, sqrt(2.0), 0.0, -sqrt(2.0), 1.0, 0.0, -1.0 );
@@ -202,7 +186,7 @@ void apply_frei_chen() {
     b = 1.0;
   else 
     b = 0.0;
-
+  /*
   float alpha = 1.0;
   if (r == 1.0) {
     alpha=alpha - 0.45;
@@ -213,7 +197,7 @@ void apply_frei_chen() {
   if (g == 1.0 ) {
     alpha = alpha - 0.3;
   }
-
+  */
   //vec4 rgb = gray;
   //vec4 rgb = vec4(r,g,img_gray,1);
   //vec4 rgb = (gray.rgb,alpha);
@@ -234,7 +218,7 @@ void apply_dist_trans() {
 
 void main(void)
 {
-  apply_blur();
+  //apply_blur();
   apply_frei_chen();
-  apply_dist_trans();
+  //apply_dist_trans();
 }

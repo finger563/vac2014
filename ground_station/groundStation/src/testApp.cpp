@@ -89,7 +89,7 @@ void testApp::draw(){
 	char fname[50];
 	if ( !iBuffer.isEmpty() )
 		iBuffer.getReader()->draw(0,0);
-	//ofDrawBitmapString("VAC Ground Station Monitor", 15, 30);
+	ofDrawBitmapString("VAC Ground Station Monitor", 15, 30);
 	if ( iBuffer.numImages() > 1 ) {
 		sprintf(fname,"img%05d.png",imgNum);
 		iBuffer.getReader()->saveImage(fname);

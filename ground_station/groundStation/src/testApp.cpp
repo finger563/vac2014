@@ -129,8 +129,8 @@ void testApp::mousePressed(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
-	string message="";
-	udpConnection.Send(message.c_str(),message.length());
+	//string message="";
+	//udpConnection.Send(message.c_str(),message.length());
 }
 
 //--------------------------------------------------------------

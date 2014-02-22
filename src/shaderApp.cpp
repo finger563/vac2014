@@ -69,7 +69,7 @@ static void *send_image_function( void* ptr ) {
     rPos += stride;
   }
 
-  printf("Camjet: sending image\n");
+  //printf("Camjet: sending image\n");
   app->sendImage(buff, size);
   app->readyToSend = true;
 }

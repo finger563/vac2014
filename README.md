@@ -12,9 +12,9 @@ FOR THE RASPBERRY PI:
 * boot the raspberry pi with the Raspbian SD card
 * run "sudo passwd pi" and give the new password as vac2013
 * run "sudo raspi-config" and enable
-  ** camera
-  ** US keyboard (instead of UK)
-  ** SSH
+    * camera
+    * US keyboard (instead of UK)
+    * SSH
 * edit /etc/network/interfaces to add the following:
 
         allow-hotplug wlan0
@@ -33,18 +33,18 @@ FOR THE RASPBERRY PI:
         #Disable power saving
         options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
 
-* change directory to HOME: "cd ~"
-* download openframeworks: "wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz"
-* unzip the openFrameworks archive to home folder: "tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz"
-* rename the openFrameworks folder: "mv of_v0.8.0_linuxarmv6l_release openFrameworks"
-* fix error in openFrameworks: "sed -i 's/VC_IMAGE_TRANSFORM_T/DISPMANX_TRANSFORM_T/g' /home/pi/openFrameworks/libs/openFrameworks/app/ofAppEGLWindow.cpp"
-* install the openframeworks dependencies: "sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh"
-* get the vac git repository: "cd ~ && git clone git@github.com:finger563/vac2014"
-* switch to the feature-raw-images branch: "cd vac2014 && git checkout feature-raw-images"
-* set the openFrameworks root environment variable: "export OF_ROOT=/home/pi/openFrameworks"
-* remove unnecessary ground station code: "rm -rf ground_station*"
-* build the openframeworks libraries and the hazard code: "make"
-* run the hazard detection code: "make run"
+* change directory to HOME
+* download openframeworks
+* unzip the openFrameworks archive to home folder
+* rename the openFrameworks folder
+* fix error in openFrameworks
+* install the openframeworks dependencies
+* get the vac git repository
+* switch to the feature-raw-images branch
+* set the openFrameworks root environment variable
+* remove unnecessary ground station code
+* build the openframeworks libraries and the hazard code
+* run the hazard detection code
 
         cd ~
         wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz

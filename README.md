@@ -30,8 +30,8 @@ FOR THE RASPBERRY PI:
 * create a file: "sudo nano /etc/modprobe.d/8192cu.conf"
 * add the lines to turn off the power saving features of the wireless dongle:
 
-#Disable power saving
-options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
+    #Disable power saving
+    options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
 
 * change directory to HOME: "cd ~"
 * download openframeworks: "wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz"
@@ -45,6 +45,19 @@ options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
 * remove unnecessary ground station code: "rm -rf ground_station*"
 * build the openframeworks libraries and the hazard code: "make"
 * run the hazard detection code: "make run"
+
+    cd ~
+    wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz
+    tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz
+    mv of_v0.8.0_linuxarmv6l_release openFrameworks
+    sed -i 's/VC_IMAGE_TRANSFORM_T/DISPMANX_TRANSFORM_T/g' /home/pi/openFrameworks/libs/openFrameworks/app/ofAppEGLWindow.cpp
+    "sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh
+    cd ~ && git clone git@github.com:finger563/vac2014
+    cd vac2014 && git checkout feature-raw-images
+    export OF_ROOT=/home/pi/openFrameworks
+    rm -rf ground_station*
+    make
+    make run
 
 FOR THE WINDOWS SYSTEM ON THE GROUND STATION:
 ---------------------------------------------
@@ -112,10 +125,10 @@ PI:
 
     make -j 6 CXX=/usr/lib/distcc/arm-linux-gnueabihf-g++ CC=/usr/lib/distcc/arm-linux-gnueabihf-gcc
 
-   If you would like to simplify your command, you can set MAKEFLAGS using the following:
-   export MAKEFLAGS="-s -j 6 CXX=/usr/lib/distcc/arm-linux-gnueabihf-g++ CC=/usr/lib/distcc/arm-linux-gnueabihf-gcc"
-   make
+If you would like to simplify your command, you can set MAKEFLAGS using the following:
 
+    export MAKEFLAGS="-s -j 6 CXX=/usr/lib/distcc/arm-linux-gnueabihf-g++ CC=/usr/lib/distcc/arm-linux-gnueabihf-gcc"
+    make
 
 TO ENCODE A SEQUENCE OF .PPM IMAGES (PACKED PIXEL, LOSSLESS) INTO A LOSSLESS AVI:
 ---------------------------------------------------------------------------------

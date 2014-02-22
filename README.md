@@ -27,6 +27,12 @@ broadcast 10.1.1.255
 wpa-ssid vacrpinet
 wpa-psk vacrpi2014
 
+*) create a file: "sudo nano /etc/modprobe.d/8192cu.conf"
+*) add the lines to turn off the power saving features of the wireless dongle:
+
+#Disable power saving
+options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
+
 *) change directory to HOME: "cd ~"
 *) download openframeworks: "wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz"
 *) unzip the openFrameworks archive to home folder: "tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz"

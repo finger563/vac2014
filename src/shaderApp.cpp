@@ -71,6 +71,7 @@ static void *send_image_function( void* ptr ) {
 
   //printf("Camjet: sending image\n");
   app->sendImage(buff, size);
+  delete buff;
   app->readyToSend = true;
 }
 

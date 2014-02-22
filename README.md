@@ -17,21 +17,21 @@ FOR THE RASPBERRY PI:
   ** SSH
 * edit /etc/network/interfaces to add the following:
 
-    allow-hotplug wlan0
-    auto wlan0
-    iface wlan0 inet static
-    address 10.1.1.2
-    netmask 255.255.255.0
-    network 10.1.1.0
-    broadcast 10.1.1.255
-    wpa-ssid vacrpinet
-    wpa-psk vacrpi2014
+        allow-hotplug wlan0
+        auto wlan0
+        iface wlan0 inet static
+        address 10.1.1.2
+        netmask 255.255.255.0
+        network 10.1.1.0
+        broadcast 10.1.1.255
+        wpa-ssid vacrpinet
+        wpa-psk vacrpi2014
 
 * create a file: "sudo nano /etc/modprobe.d/8192cu.conf"
 * add the lines to turn off the power saving features of the wireless dongle:
 
-    #Disable power saving
-    options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
+        #Disable power saving
+        options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
 
 * change directory to HOME: "cd ~"
 * download openframeworks: "wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz"
@@ -46,18 +46,18 @@ FOR THE RASPBERRY PI:
 * build the openframeworks libraries and the hazard code: "make"
 * run the hazard detection code: "make run"
 
-    cd ~
-    wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz
-    tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz
-    mv of_v0.8.0_linuxarmv6l_release openFrameworks
-    sed -i 's/VC_IMAGE_TRANSFORM_T/DISPMANX_TRANSFORM_T/g' /home/pi/openFrameworks/libs/openFrameworks/app/ofAppEGLWindow.cpp
-    "sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh
-    cd ~ && git clone git@github.com:finger563/vac2014
-    cd vac2014 && git checkout feature-raw-images
-    export OF_ROOT=/home/pi/openFrameworks
-    rm -rf ground_station*
-    make
-    make run
+        cd ~
+        wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz
+        tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz
+        mv of_v0.8.0_linuxarmv6l_release openFrameworks
+        sed -i 's/VC_IMAGE_TRANSFORM_T/DISPMANX_TRANSFORM_T/g' /home/pi/openFrameworks/libs/openFrameworks/app/ofAppEGLWindow.cpp
+        "sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh
+        cd ~ && git clone git@github.com:finger563/vac2014
+        cd vac2014 && git checkout feature-raw-images
+        export OF_ROOT=/home/pi/openFrameworks
+        rm -rf ground_station*
+        make
+        make run
 
 FOR THE WINDOWS SYSTEM ON THE GROUND STATION:
 ---------------------------------------------
@@ -102,17 +102,17 @@ LINUX:
 
 * Edit /etc/default/distcc (e.g. sudo vi /etc/default/distcc)
 
-    Change STARTDISTCC="false" to STARTDISTCC="true"
-    Change ALLOWEDNETS="127.0.0.1" to include the network IP addresses of your Raspberry Pis
-    Note: Addresses use CIDR notation. To allow your localhost AND IP addresses in the range 192.168.1.0-192.168.1.255 use this ALLOWEDNETS="127.0.0.1 192.168.1.0/24.
-    Note: If you want help with CIDR notation, you can use the calculator here http://www.subnet-calculator.com/cidr.php.
-    Change ZEROCONF="false" to ZEROCONF="true"
-    Change LISTENER="127.0.0.1" to LISTENER="" in order to listen for incoming connections all any network interface (not just the localhost/127.0.0.1).
+        Change STARTDISTCC="false" to STARTDISTCC="true"
+        Change ALLOWEDNETS="127.0.0.1" to include the network IP addresses of your Raspberry Pis
+        Note: Addresses use CIDR notation. To allow your localhost AND IP addresses in the range 192.168.1.0-192.168.1.255 use this ALLOWEDNETS="127.0.0.1 192.168.1.0/24.
+        Note: If you want help with CIDR notation, you can use the calculator here http://www.subnet-calculator.com/cidr.php.
+        Change ZEROCONF="false" to ZEROCONF="true"
+        Change LISTENER="127.0.0.1" to LISTENER="" in order to listen for incoming connections all any network interface (not just the localhost/127.0.0.1).
    
 * Edit /etc/init.d/distcc (e.g. sudo vi /etc/init.d/distcc)
 
-    Change PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin to PATH=$RPI_TOOLS/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-    Note: $RPI_TOOLS should be the path were you installed the raspberry pi compiler before.
+        Change PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin to PATH=$RPI_TOOLS/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+        Note: $RPI_TOOLS should be the path were you installed the raspberry pi compiler before.
 
 * to start distcc : sudo service distcc {re}start
 
@@ -123,7 +123,7 @@ PI:
 
 * To compile (finally!)
 
-    make -j 6 CXX=/usr/lib/distcc/arm-linux-gnueabihf-g++ CC=/usr/lib/distcc/arm-linux-gnueabihf-gcc
+        make -j 6 CXX=/usr/lib/distcc/arm-linux-gnueabihf-g++ CC=/usr/lib/distcc/arm-linux-gnueabihf-gcc
 
 If you would like to simplify your command, you can set MAKEFLAGS using the following:
 

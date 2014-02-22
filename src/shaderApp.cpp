@@ -3,10 +3,10 @@
 #include <fstream>
 #include <sys/time.h>
 
-#define SHOW_OVERLAY 1
-#define SHOW_PREVIEW 1
+#define SHOW_OVERLAY 0
+#define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
-#define SEND_IMAGE 0
+#define SEND_IMAGE 1
 #define BYTES_PER_PIXEL 3
 #define SEND_SIZE (640*480*3)
 
@@ -270,7 +270,7 @@ void shaderApp::update(){
     edgeShader.setUniform1f("c_yStep",1.0/(double)height);
     videoGrabber.draw();
     edgeShader.end();
-#if 1
+#if 0
     int NUM_SHADER_ITERATIONS = 7;
     for (int i=0; i < NUM_SHADER_ITERATIONS; i++) {
       fbo.end();

@@ -89,7 +89,7 @@ void testApp::draw(){
 	char fname[50];
 	if ( !iBuffer.isEmpty() )
 		iBuffer.getReader()->draw(0,0);
-	//ofDrawBitmapString("VAC Ground Station Monitor", 15, 30);
+	ofDrawBitmapString("VAC Ground Station Monitor", 15, 30);
 	if ( iBuffer.numImages() > 1 ) {
 		sprintf(fname,"img%05d.png",imgNum);
 		iBuffer.getReader()->saveImage(fname);
@@ -129,8 +129,8 @@ void testApp::mousePressed(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
-	string message="";
-	udpConnection.Send(message.c_str(),message.length());
+	//string message="";
+	//udpConnection.Send(message.c_str(),message.length());
 }
 
 //--------------------------------------------------------------

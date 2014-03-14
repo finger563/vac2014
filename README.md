@@ -33,6 +33,13 @@ FOR THE RASPBERRY PI:
         #Disable power saving
         options 8192cu rtw_power_mgnt=0 rtw_enusbss=1 rtw_ips_mode=1
 
+* perform the following file copies/moves to configure wireless autoreconnect:
+
+        #Make a backup of the original file
+        sudo mv /etc/ifplugd/action.d/ifupdown /etc/ifplugd/action.d/ifupdown.original
+        #Copy better version to use now
+        sudo cp /etc/wpa_supplicant/ifupdown.sh /etc/ifplugd/action.d/ifupdown
+
 * change directory to HOME
 * download openframeworks
 * unzip the openFrameworks archive to home folder

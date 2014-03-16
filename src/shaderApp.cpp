@@ -130,6 +130,15 @@ static void *write_video_function( void* ptr ) {
 }
 
 void shaderApp::sendImage(char *img,int size) {
+  if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
+    printf("Camjet: ERROR - initializing socket!\n");
+    return -1;
+  }
+  if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
+    printf("Camjet: ERROR - binding\n");
+    return -1;
+  }
+
   char tmp[50];
   sprintf(tmp,"START,%d",size);
   int numBytes = 0;
@@ -149,6 +158,8 @@ void shaderApp::sendImage(char *img,int size) {
   sprintf(tmp,"END");
   while ((numBytes = sendto(sockfd, tmp, strlen(tmp),0, 
 			    (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1);
+  
+  close(sockfd);
 }
 
 //--------------------------------------------------------------
@@ -189,7 +200,8 @@ int shaderApp::socketSetup() {
     printf("Camjet: ERROR - sendto\n");
     return -1;
   }
-  printf("Camjet: ERROR - done setting up sockets\n");
+  printf("Camjet: done setting up sockets\n");
+  close(sockfd);
   return 0;
 }
 

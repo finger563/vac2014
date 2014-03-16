@@ -134,11 +134,12 @@ void shaderApp::sendImage(char *img,int size) {
     printf("Camjet: ERROR - initializing socket!\n");
     return -1;
   }
+#if 1
   if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
     printf("Camjet: ERROR - binding\n");
     return -1;
   }
-
+#endif
   char tmp[50];
   sprintf(tmp,"START,%d",size);
   int numBytes = 0;
@@ -202,6 +203,12 @@ int shaderApp::socketSetup() {
   }
   printf("Camjet: done setting up sockets\n");
   close(sockfd);
+#if 0
+  if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
+    printf("Camjet: ERROR - initializing socket!\n");
+    return -1;
+  }
+#endif
   return 0;
 }
 

@@ -165,10 +165,6 @@ void shaderApp::sendImage(char *img,int size) {
 
 //--------------------------------------------------------------
 int shaderApp::socketSetup() {
-  if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
-    printf("Camjet: ERROR - initializing socket!\n");
-    return -1;
-  }
   local_port = 9999;
   sprintf(local_ip,IP_PREFIX);
   local_addr.sin_family = AF_INET;
@@ -179,30 +175,50 @@ int shaderApp::socketSetup() {
     return -1;
   }
 
-  if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
-    printf("Camjet: ERROR - binding\n");
-    return -1;
-  }
+  bool initialized = false;
 
   remote_addr_len = sizeof remote_addr;
   char sock_buffer[50];
   int num_bytes;
-
-  printf("Camjet: waiting for ground station initialization\n");
-  if ( (num_bytes = recvfrom(sockfd, sock_buffer, 50, 0, 
-			     (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 ) {
-    printf("Camjet: ERROR - recvfrom\n");
-    return -1;
+  
+  while ( !initialized ) {
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
+      printf("Camjet: ERROR - initializing socket!\n");
+    }
+    else {
+      if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
+        printf("Camjet: ERROR - binding\n");
+      }
+      else {
+        struct timeval tv;
+        tv.tv_sec = SOCK_TIMEOUT_SEC;
+        tv.tv_usec = 0;
+        if ( setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0 ) {
+          printf("Camjet: ERROR - set recv timeout\n");
+        }
+        else {
+          printf("Camjet: waiting for ground station initialization\n");
+          if ( (num_bytes = recvfrom(sockfd, sock_buffer, 50, 0, 
+                   (struct sockaddr *) &remote_addr, &remote_addr_len) ) == -1 ) {
+            printf("Camjet: ERROR - recvfrom\n");
+          }
+          else {
+            printf("Camjet: got ground station initialization : %s\n",sock_buffer);
+            if ((num_bytes = sendto(sockfd, &sock_buffer, strlen(sock_buffer),0, 
+                 (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1){
+              printf("Camjet: ERROR - sendto\n");
+            }
+            else {
+              printf("Camjet: done setting up sockets\n");
+              initialized = true;
+            }
+          }
+        }
+      }
+    }
+    close(sockfd);
   }
-
-  printf("Camjet: got ground station initialization : %s\n",sock_buffer);
-  if ((num_bytes = sendto(sockfd, &sock_buffer, strlen(sock_buffer),0, 
-			 (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1){
-    printf("Camjet: ERROR - sendto\n");
-    return -1;
-  }
-  printf("Camjet: done setting up sockets\n");
-  close(sockfd);
+  
 #if 0
   if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
     printf("Camjet: ERROR - initializing socket!\n");

@@ -11,6 +11,7 @@ FOR THE RASPBERRY PI:
 * Make an image of Raspbian for the raspberry pi onto the SD card
 * boot the raspberry pi with the Raspbian SD card
 * run "sudo passwd pi" and give the new password as vac2013
+* run "sudo date --set="13 MAR 2014 18:57:00"" with whatever the correct date/time is
 * run "sudo raspi-config" and enable
     * camera
     * US keyboard (instead of UK)

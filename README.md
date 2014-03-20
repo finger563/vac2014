@@ -8,6 +8,10 @@ the following steps must be followed:
 
 FOR THE RASPBERRY PI:
 ---------------------
+* You will need a usb keyboard, HDMI cable, Monitor, and (possibly) an adapter from hdmi to dvi/vga
+  * After you set up the wlan on the windows machine and ssh on the RPi, you no longer need these
+  * To SSH from windows to RPI install cygwin and (in its installer) install SSH
+  * ssh command : "ssh pi@10.1.1.2"
 * Make an image of Raspbian for the raspberry pi onto the SD card
 * boot the raspberry pi with the Raspbian SD card
 * run "sudo passwd pi" and give the new password as vac2013

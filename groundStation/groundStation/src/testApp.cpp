@@ -1,8 +1,9 @@
 #include "testApp.h"
 
-#define RECONNECT_TIME 400
 #define IMG_BUFFER_SIZE 10
 #define MAXBUFLEN 10240
+
+#define WRITE_IMAGES 0
 
 const char* IP_ADDR = "10.1.1.2";
 const int IP_PORT = 9999;
@@ -13,6 +14,7 @@ DWORD WINAPI recvImageFunction( LPVOID lpParam ) {
 	app = (testApp *)lpParam;
 	
 	char tmpBuffer[50];
+	int imgNum = 0;
 
 	sprintf(tmpBuffer,"Start Processing");
 	app->udpConnection.Send(tmpBuffer,strlen(tmpBuffer));
@@ -22,6 +24,7 @@ DWORD WINAPI recvImageFunction( LPVOID lpParam ) {
 
 	while (true) {
 		app->receiveImage();
+		printf("Ground Station: Received image %d\n",imgNum++);
 	}
 }
 
@@ -44,7 +47,7 @@ void testApp::receiveImage() {
 			p = strtok(NULL,","); // want second argument
 			imgSize = atoi(p);
 			data = new unsigned char[imgSize];
-			printf("Ground Station: image size = %d\n",imgSize);
+			//printf("Ground Station: image size = %d\n",imgSize);
 			if ( imgSize <= 0 ) {
 				recvStart = false;
 			}
@@ -53,7 +56,7 @@ void testApp::receiveImage() {
 					recvBytes = udpConnection.Receive((char *)data + totalBytesReceived,MAXBUFLEN);
 					totalBytesReceived += recvBytes;
 					if (!strcmp(tmpBuffer,"END")) {
-						printf("Ground Station: image ended with %s\n",tmpBuffer);
+						//printf("Ground Station: image ended with %s\n",tmpBuffer);
 						recvEnd = true;
 					}
 				}
@@ -64,7 +67,7 @@ void testApp::receiveImage() {
 		iBuffer.getWriter()->getPixels()[i] = data[i];
 	delete data;
 	iBuffer.incrementWriter();
-	printf("Ground Station: Received %d bytes\n",totalBytesReceived);
+	//printf("Ground Station: Received %d bytes\n",totalBytesReceived);
 }
 
 //--------------------------------------------------------------
@@ -73,6 +76,8 @@ void testApp::setup(){
 	
 	udpConnection.Create();
 	udpConnection.Connect(IP_ADDR, IP_PORT);
+	//udpConnection.SetTimeoutReceive(5);
+	//udpConnection.SetTimeoutSend(1);
 
 	receiverThread = CreateThread( NULL, 0, recvImageFunction, this, 0, &dwThreadID);
 }
@@ -91,10 +96,12 @@ void testApp::draw(){
 		iBuffer.getReader()->draw(0,0);
 	ofDrawBitmapString("VAC Ground Station Monitor", 15, 30);
 	if ( iBuffer.numImages() > 1 ) {
+#if WRITE_IMAGES
 		sprintf(fname,"img%05d.png",imgNum);
 		iBuffer.getReader()->saveImage(fname);
-		iBuffer.incrementReader();
 		imgNum++;
+#endif
+		iBuffer.incrementReader();
 	}
 }
 
@@ -129,8 +136,6 @@ void testApp::mousePressed(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::mouseReleased(int x, int y, int button){
-	//string message="";
-	//udpConnection.Send(message.c_str(),message.length());
 }
 
 //--------------------------------------------------------------

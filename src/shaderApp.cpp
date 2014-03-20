@@ -7,9 +7,9 @@
 #define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 1
-#define BYTES_PER_PIXEL 3
 #define SEND_SIZE (640*480*3)
 
+const int SOCK_TIMEOUT_SEC = 10;  // timeout for establishing connection with ground station
 const int FINTERVAL = 10;
 const int BUFFER_LENGTH = 30;
 const int FRAMERATE = 20;// FPS
@@ -20,30 +20,6 @@ const int SEND_MODINTERVAL = FRAMERATE / 5;
 
 const int MAX_TRANSMIT_SIZE = 10240;
 const char* IP_PREFIX = "10";
-
-// for RGBA images
-const char bmp_header[122] = {
-  0x42,0x4D,// "BM"
-  00,0xC0,0x12,0, // SIZE
-  0,0,0,0, // unused
-  0x7A,0,0,0, // 122 bytes from start of file
-  0x6C,0,0,0, // 108 bytes in DIB header
-  0x80,0x02,0,0, // WIDTH
-  0xE0,0x01,0,0, // HEIGHT
-  0x01,0,
-  0x20,0,
-  0x03,0,0,0,
-  0,0xC0,0x12,0, // SIZE OF DATA ARRAY (incl padding)
-  0x13,0x0B,0,0,
-  0x13,0x0B,0,0,
-  0,0,0,0,
-  0,0,0,0,
-  0xFF,0,0,0,
-  0,0xFF,0,0,
-  0,0,0xFF,0,
-  0,0,0,0xFF,
-  0x20,0x6E,0x69,0x57
-};
 
 static void *write_video_function( void* ptr );
 static void *send_image_function( void* ptr );
@@ -96,17 +72,10 @@ static void *write_video_function( void* ptr ) {
       usleep(5000);
     }
     std::ofstream outfile;
-    if ( app->vBuffer.bytesPerPixel() == 3 ) {
-      sprintf(fname,"img%04d.ppm",id++);
-      outfile.open(fname,std::ofstream::binary);
-      sprintf(fname,"P6 %d %d 255 ",app->vBuffer.width(),app->vBuffer.height());
-      outfile.write(fname,strlen(fname));
-    }
-    else if ( app->vBuffer.bytesPerPixel() == 4 ) {
-      sprintf(fname,"img%04d.bmp",id++);
-      outfile.open(fname,std::ofstream::binary);
-      outfile.write(bmp_header,122);
-    }
+    sprintf(fname,"img%04d.ppm",id++);
+    outfile.open(fname,std::ofstream::binary);
+    sprintf(fname,"P6 %d %d 255 ",app->vBuffer.width(),app->vBuffer.height());
+    outfile.write(fname,strlen(fname));
     outfile.write(app->vBuffer.read(),
 		  app->vBuffer.size());
     outfile.close();
@@ -132,19 +101,19 @@ static void *write_video_function( void* ptr ) {
 void shaderApp::sendImage(char *img,int size) {
   if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
     printf("Camjet: ERROR - initializing socket!\n");
-    return -1;
+    return;
   }
 #if 1
   if (bind(sockfd,(struct sockaddr *)&local_addr,sizeof(local_addr))<0){
     printf("Camjet: ERROR - binding\n");
-    return -1;
+    return;
   }
 #endif
   char tmp[50];
   sprintf(tmp,"START,%d",size);
   int numBytes = 0;
-  while ((numBytes = sendto(sockfd, tmp, strlen(tmp),0, 
-			    (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1);
+  sendto(sockfd, tmp, strlen(tmp),0, 
+			    (struct sockaddr *)&(remote_addr), remote_addr_len);
   char* ptr = img;
   int bytesLeft = size;
   int numMessages = ceil((double)size/(double)MAX_TRANSMIT_SIZE);
@@ -157,8 +126,8 @@ void shaderApp::sendImage(char *img,int size) {
   }
 
   sprintf(tmp,"END");
-  while ((numBytes = sendto(sockfd, tmp, strlen(tmp),0, 
-			    (struct sockaddr *)&(remote_addr), remote_addr_len)) == -1);
+  sendto(sockfd, tmp, strlen(tmp),0, 
+			    (struct sockaddr *)&(remote_addr), remote_addr_len);
   
   close(sockfd);
 }
@@ -182,6 +151,7 @@ int shaderApp::socketSetup() {
   int num_bytes;
   
   while ( !initialized ) {
+    memset(sock_buffer,0,50);
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM,0)) < 0 ) {
       printf("Camjet: ERROR - initializing socket!\n");
     }
@@ -244,7 +214,7 @@ void shaderApp::setup()
   consoleListener.setup(this);
   printf("Camjet: done setting up console listener\n");
 
-  ofSetPixelStorei( this->width, 8, 4 );
+  //ofSetPixelStorei( this->width, 8, 4 );
 
   omxCameraSettings.width = this->width;
   omxCameraSettings.height = this->height;
@@ -266,7 +236,7 @@ void shaderApp::setup()
   printf("Camjet: allocated fbo\n");
 
   picnum = 0;
-  vBuffer.bytesPerPixel(BYTES_PER_PIXEL);
+  vBuffer.bytesPerPixel(3);
   vBuffer.allocate(BUFFER_LENGTH,fbo.getWidth(),fbo.getHeight());
   printf("Camjet: allocated vBuffer\n");
 		

@@ -87,6 +87,7 @@ You must then configure the new network to have a static ip and subnet mask:
 * install git for windows, tortoise git, and MS VS2012
 * get the vac git repository (same url as above)
 * switch to the feature-raw-images branch
+* download the openframeworks for windows/VS2012 archive ( http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_vs_release.zip )
 * uncompress the openframeworks archive (of_v0.8.0_vs_release.zip)
 * copy vac2014/ground_station/groundStation to openFrameworks/examples/groundStation/. (there should be groundStation inside a groundStation folder)
 * open the .sln file in the folder to which you copied

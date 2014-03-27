@@ -160,7 +160,7 @@ Note: You can use +append for horizontal placement or -append for vertical place
 			scp pi@10.1.1.2:~/share/vac2014/bin/img* images/.
 			scp images/* <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>:~/.
 	
-	* On your linux VM: (ssh &ltYOUR USERNAME&gt@&ltYOUR LINUX VM's IP ADDRESS&gt)
+	* On your linux VM: (`ssh <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>`)
 
 			cd ~
 			mkdir images

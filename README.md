@@ -146,5 +146,26 @@ If you would like to simplify your command, you can set MAKEFLAGS using the foll
 TO ENCODE A SEQUENCE OF .PPM IMAGES (PACKED PIXEL, LOSSLESS) INTO A LOSSLESS AVI:
 ---------------------------------------------------------------------------------
 
-    ffmpeg -r 25 -b 180000 -i img%04d.ppm test.avi
-    ffmpeg -r N -i img%04d.ppm -vcodec qtrle test.mov
+    ffmpeg -r <FRAMERATE> -i %05d.ppm -vcodec qtrle test.mov
+
+	FULL STEP BY STEP INSTRUCTIONS:
+	
+	IN CYGWIN:
+	mkdir images
+	scp pi@10.1.1.2:~/share/vac2014/bin/img* images/.
+	scp images/* <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>:~/.
+	
+	ON YOUR LINUX VM: (ssh <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>)
+	cd ~
+	mkdir images
+	mv img* images/.
+	cd images
+	mkdir odd
+	mkdir even
+	mkdir composite
+	mv *[13579].ppm odd
+	mv *[02468].ppm even
+	cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..
+	cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..	
+	cd odd; num=0;for file in *.jpg; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
+	cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..

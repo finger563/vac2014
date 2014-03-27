@@ -156,22 +156,22 @@ Note: You can use +append for horizontal placement or -append for vertical place
 * Step By Step Instructions
 	* On your windows machine in Cygwin:
 	
-		mkdir images
-		scp pi@10.1.1.2:~/share/vac2014/bin/img* images/.
-		scp images/* <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>:~/.
+			mkdir images
+			scp pi@10.1.1.2:~/share/vac2014/bin/img* images/.
+			scp images/* <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>:~/.
 	
 	* On your linux VM: (ssh <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>)
 
-		cd ~
-		mkdir images
-		mv img* images/.
-		cd images
-		mkdir odd
-		mkdir even
-		mkdir composite
-		mv *[13579].ppm odd
-		mv *[02468].ppm even
-		cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..
-		cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..	
-		cd odd; num=0;for file in *.jpg; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
-		cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..
+			cd ~
+			mkdir images
+			mv img* images/.
+			cd images
+			mkdir odd
+			mkdir even
+			mkdir composite
+			mv *[13579].ppm odd
+			mv *[02468].ppm even
+			cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..
+			cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..	
+			cd odd; num=0;for file in *.jpg; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
+			cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..

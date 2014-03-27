@@ -171,7 +171,7 @@ Note: You can use +append for horizontal placement or -append for vertical place
 			mkdir composite
 			mv *[13579].ppm odd
 			mv *[02468].ppm even
-			cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..
-			cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).jpg"; let num=num+1; done; cd ..	
-			cd odd; num=0;for file in *.jpg; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
+			cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).ppm"; let num=num+1; done; cd ..
+			cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).ppm"; let num=num+1; done; cd ..	
+			cd odd; num=0;for file in *.ppm; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
 			cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..

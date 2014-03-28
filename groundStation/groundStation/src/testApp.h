@@ -3,9 +3,7 @@
 #include "ofxNetwork.h"
 #include "ofMain.h"
 
-#include <Windows.h>
-#include <tchar.h>
-#include <strsafe.h>
+#include <pthread.h>
 
 class imgBuffer {
  
@@ -81,7 +79,7 @@ class imgBuffer {
   ofImage* buffer;
 };
 
-DWORD WINAPI recvImageFunction( LPVOID lpParam );
+static void *recvImageFunction( void* lpParam );
 
 class testApp : public ofBaseApp{
 
@@ -111,8 +109,7 @@ class testApp : public ofBaseApp{
 		int width,height;
 		imgBuffer iBuffer;
 
-		HANDLE receiverThread;
-		DWORD dwThreadID;
+		pthread_t receiverThread;
 
 		ofTrueTypeFont  mono;
 		ofTrueTypeFont  monosm;

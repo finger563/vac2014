@@ -9,7 +9,7 @@ const char* IP_ADDR = "10.1.1.2";
 const int IP_PORT = 9999;
 
 //--------------------------------------------------------------
-DWORD WINAPI recvImageFunction( LPVOID lpParam ) {
+static void *recvImageFunction( void* lpParam ) {
 	testApp* app;
 	app = (testApp *)lpParam;
 	
@@ -79,7 +79,7 @@ void testApp::setup(){
 	//udpConnection.SetTimeoutReceive(5);
 	//udpConnection.SetTimeoutSend(1);
 
-	receiverThread = CreateThread( NULL, 0, recvImageFunction, this, 0, &dwThreadID);
+	pthread_create( &receiverThread, NULL, recvImageFunction, (void *) this);
 }
 
 //--------------------------------------------------------------

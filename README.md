@@ -63,7 +63,7 @@ FOR THE RASPBERRY PI:
         tar -xvzf of_v0.8.0_linuxarmv6l_release.tar.gz
         mv of_v0.8.0_linuxarmv6l_release openFrameworks
         sed -i 's/VC_IMAGE_TRANSFORM_T/DISPMANX_TRANSFORM_T/g' /home/pi/openFrameworks/libs/openFrameworks/app/ofAppEGLWindow.cpp
-        "sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh
+        sudo ./openFrameworks/scripts/linux/debian_armv6l/install_dependencies.sh
         cd ~ && git clone git@github.com:finger563/vac2014
         cd vac2014 && git checkout feature-raw-images
         export OF_ROOT=/home/pi/openFrameworks

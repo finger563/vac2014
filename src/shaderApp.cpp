@@ -7,7 +7,7 @@
 #define SHOW_PREVIEW 0
 #define SLEEP_DELAY 1
 #define SEND_IMAGE 1
-#define SEND_SIZE (640*480*3)
+#define BYTES_PER_PIXEL_SENT 3
 
 const int SOCK_TIMEOUT_SEC = 10;  // timeout for establishing connection with ground station
 const int FINTERVAL = 10;
@@ -251,7 +251,7 @@ void shaderApp::setup()
 
   frameInterval = FINTERVAL;
   pthread_create(&videoThread, NULL, write_video_function, (void *) this);
-  sendSize = SEND_SIZE;
+  sendSize = this->width * this->height * BYTES_PER_PIXEL_SENT;
   readyToSend = true;
   printf("Camjet: done with setup\n");
 }	

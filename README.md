@@ -3,12 +3,21 @@ CAMJET Hazard Detection System.  In this repository is all of
 the necessary code for getting the hazard detection
 system up and running. 
 
+NOTE: The camjet runs on a Raspberry Pi Model A (for power and space reasons), but the setup of 
+the SD card and the code is more easily done on a Model B.
+
+TO RUN THE CAMJET HAZARD DETECTION SOFTWARE:
+----------------------------------------
+Having set up the computer with the WiFi adapter and the vacrpinet network, open cygwin and ping 10.1.1.1 and 10.1.1.2.  If both of those respond, the camjet is up and running and you can connect to it.  You then simply run the groundStation executable (or open the groundStation VS2012 project and run it through VS).  
+
 In order to get the hazard detection system up and running,
 the following steps must be followed:
 
-FOR THE RASPBERRY PI:
----------------------
-* You will need a usb keyboard, HDMI cable, Monitor, and (possibly) an adapter from hdmi to dvi/vga
+SETUP FOR THE RASPBERRY PI:
+--------------------------
+* You will need a Raspberry Pi Model A (for executing the code)
+* You will need a Raspberry Pi Model B (for setting up the SD card and compiling the code)
+* You will need a usb keyboard, HDMI cable, Monitor, ethernet cable, and (possibly) an adapter from hdmi to dvi/vga
   * After you set up the wlan on the windows machine and ssh on the RPi, you no longer need these
   * To SSH from windows to RPI install cygwin and (in its installer) install SSH
   * ssh command : "ssh pi@10.1.1.2"
@@ -20,18 +29,6 @@ FOR THE RASPBERRY PI:
     * camera
     * US keyboard (instead of UK)
     * SSH
-* edit /etc/network/interfaces to add the following:
-
-        allow-hotplug wlan0
-        auto wlan0
-        iface wlan0 inet static
-        address 10.1.1.2
-        netmask 255.255.255.0
-        network 10.1.1.0
-        broadcast 10.1.1.255
-        wpa-ssid vacrpinet
-        wpa-psk vacrpi2014
-
 * create a file: "sudo nano /etc/modprobe.d/8192cu.conf"
 * add the lines to turn off the power saving features of the wireless dongle:
 
@@ -56,7 +53,6 @@ FOR THE RASPBERRY PI:
 * set the openFrameworks root environment variable
 * remove unnecessary ground station code
 * build the openframeworks libraries and the hazard code
-* run the hazard detection code
 
         cd ~
         wget http://www.openframeworks.cc/versions/v0.8.0/of_v0.8.0_linuxarmv6l_release.tar.gz
@@ -69,10 +65,34 @@ FOR THE RASPBERRY PI:
         export OF_ROOT=/home/pi/openFrameworks
         rm -rf ground_station*
         make
-        make run
 
-FOR THE WINDOWS SYSTEM ON THE GROUND STATION:
----------------------------------------------
+* edit /etc/network/interfaces to add the following:
+
+        allow-hotplug wlan0
+        auto wlan0
+        iface wlan0 inet static
+        address 10.1.1.2
+        netmask 255.255.255.0
+        network 10.1.1.0
+        broadcast 10.1.1.255
+        wpa-ssid vacrpinet
+        wpa-psk vacrpi2014
+
+* edit /home/pi/.bashrc to add the following at the end (so that you don't have to type it every time):
+
+	export OF_ROOT=/home/pi/openFrameworks
+	
+* edit /etc/rc.local (as root) to tell the camjet to run the hazard detection software when it boots:
+
+	sudo emacs -nw /etc/rc.local
+	
+* add the following line (after the last line commented out with #):
+
+	/home/pi/vac2014/bin/vac2014 &
+
+
+SETUP FOR THE WINDOWS SYSTEM ON THE GROUND STATION:
+--------------------------------------------------
 To configure the wireless interface in windows, first plug in the wireless adapter.
 You must open a command prompt as an administrator and run the following commands:
 

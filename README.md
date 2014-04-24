@@ -175,3 +175,30 @@ Note: You can use +append for horizontal placement or -append for vertical place
 			cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).ppm"; let num=num+1; done; cd ..	
 			cd odd; num=0;for file in *.ppm; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
 			cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..
+
+TO USE YOUR LAPTOP'S SD CARD READER TO READ THE CAMJET CARD IN A VM:
+--------------------------------------------------------------------
+* On your windows machine, plug in the SD card which has the camjet data you want to extract.
+* Open a command prompt with administrator privileges and run this command:
+
+		wmic diskdrive list brief
+	
+* Look for the device ID of the SDHC card, which should be something like this:
+
+		\\.\PHYSICALDRIVE1
+	
+* Run this command, which will create a vmdk disk image on the desktop for you:
+
+		"C:\Program Files\Oracle\VirtualBox\VBoxManage" internalcommands createrawvmdk -filename "%USERPROFILE%/Desktop/sdcard.vmdk" -rawdisk "\\.\PHYSICALDRIVE1"
+	
+* Ensure the guest VM is not running.
+* Ensure VirtualBox is not running
+* Start VirtualBox by right-clicking on it and choosing "Run as administrator"
+* Open the settings area for the guest VM
+* Click on "Storage" in the toolbar
+* Next to the controller click on the icon to "Add Hard Disk"
+* Select "Choose existing disk"
+* Navigate to the /path/to/file.vmdk you used in step 3 and select it
+* You should now be returned to the Storage tab and see your file.vmdk in the list.
+* Start the VM
+* Depending on whether you have a GUI or not the SD card may or may not automatically mount. If you need to mount it manually it is simply exposed as another standard block device, so on my guess this was exposed as /dev/sdb.

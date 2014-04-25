@@ -222,3 +222,6 @@ TO USE YOUR LAPTOP'S SD CARD READER TO READ THE CAMJET CARD IN A VM:
 * You should now be returned to the Storage tab and see your file.vmdk in the list.
 * Start the VM
 * Depending on whether you have a GUI or not the SD card may or may not automatically mount. If you need to mount it manually it is simply exposed as another standard block device, so on my guess this was exposed as /dev/sdb.
+* If you want to copy the images from the SD card to the vm, you can use the linux copy command (cp), but then you should use rsync to preserve the timestamps of the images:
+
+		rsync -vrt --size-only /src /dest

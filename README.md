@@ -165,39 +165,42 @@ If you would like to simplify your command, you can set MAKEFLAGS using the foll
 
 TO ENCODE A SEQUENCE OF .PPM IMAGES (PACKED PIXEL, LOSSLESS) INTO A LOSSLESS AVI:
 ---------------------------------------------------------------------------------
-The commands you need to know for composing images (putting one image next to another) and 
-stitching images into a video are these two commands:
+To create the videos, we must do a few things:
 
-	convert <LEFT IMAGE> <RIGHT IMAGE> +append <OUTPUT IMAGE>
-    ffmpeg -r <FRAMERATE> -i %05d.ppm -vcodec qtrle test.mov
-	
-Note: You can use +append for horizontal placement or -append for vertical placement.
+* sort the images to separate the odd numbered images (raw) from the even numbered images (hazards)
+* rename the sorted images
+* create videos for each set of images, using the preserved timestamps to set their presentation time
+* create a composite video of the two videos side-by-side, using the preserved image timing for presentation
+* Step By Step Instructions:
+	* Connect a USB SD card reader to your computer
+    * Plug in the SD card from the Pi in to the SD card reader
+    * Start your virtual machine
+    * In VMWare or VirtualBox, pass the USB card reader through to your Virtual Machine
+	* On your linux VM: 
 
-* Step By Step Instructions
-	* On your windows machine in Cygwin:
-	
-			mkdir images
-			scp pi@10.1.1.2:~/share/vac2014/bin/img* images/.
-			scp images/* <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>:~/.
-	
-	* On your linux VM: (`ssh <YOUR USERNAME>@<YOUR LINUX VM's IP ADDRESS>`)
+            ls /media/
 
-			cd ~
-			mkdir images
-			mv img* images/.
+    * The ls command should show two things: (1) boot, and (2) a long string such as af599925-1134-4b6e-8883-fb6a99cd58f1
+    * This string is the root folder of your SD card use it in the <ROOT_FOLDER> below
+
+            cd ~            
+            mkdir images
+			cp -p /media/<ROOT_FOLDER>/img* images/.
 			cd images
 			mkdir odd
 			mkdir even
-			mkdir composite
-			mv *[13579].ppm odd
-			mv *[02468].ppm even
-			cd odd; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).ppm"; let num=num+1; done; cd ..
-			cd even; num=0;for file in *.ppm; do mv "$file" "$(printf "%05u" $num).ppm"; let num=num+1; done; cd ..	
-			cd odd; num=0;for file in *.ppm; do convert "$file" "../even/$file" +append "$(printf "../composite/%05u" $num).ppm"; let num=num+1; done; cd ..
-			cd composite; ffmpeg -r 10 -i %05d.ppm -vcodec qtrle test.mov; cd ..
+			cp -p *[13579].ppm odd
+			cp -p *[02468].ppm even
+            rm -f img*
+			cd odd; num=0;for file in *.ppm; do cp -p "$file" "$(printf "%05u" $num).ppm"; rm -f "$file"; let num=num+1; done; cd ..
+			cd even; num=0;for file in *.ppm; do cp -p "$file" "$(printf "%05u" $num).ppm"; rm -f "$file"; let num=num+1; done; cd ..	
+            cd odd; ffmpeg -ts_from_file 2 -t <LENGTH_OF_VIDEO_IN_SECONDS> -i %05d.ppm -vf hflip -vcodec qtrle ../raw.mov; cd ..
+            cd even; ffmpeg -ts_from_file 2 -t <LENGTH_OF_VIDEO_IN_SECONDS> -i %05d.ppm -vf hflip -vcodec qtrle ../haz.mov; cd ..
+            ffmpeg -i raw.mov -i haz.mov -filter_complex "[0:v:0]pad=iw*2:ih[bg]; [bg][1:v:0]overlay=w" composite_compressed.mov
+            ffmpeg -i raw.mov -i haz.mov -filter_complex "[0:v:0]pad=iw*2:ih[bg]; [bg][1:v:0]overlay=w" -vcodec qtrle composite.mov
 
-TO USE YOUR LAPTOP'S SD CARD READER TO READ THE CAMJET CARD IN A VM:
---------------------------------------------------------------------
+TO USE YOUR LAPTOP'S SD CARD READER TO READ THE CAMJET CARD IN A VM (VERY SLOW):
+--------------------------------------------------------------------------------
 * On your windows machine, plug in the SD card which has the camjet data you want to extract.
 * Open a command prompt with administrator privileges and run this command:
 
@@ -222,6 +225,6 @@ TO USE YOUR LAPTOP'S SD CARD READER TO READ THE CAMJET CARD IN A VM:
 * You should now be returned to the Storage tab and see your file.vmdk in the list.
 * Start the VM
 * Depending on whether you have a GUI or not the SD card may or may not automatically mount. If you need to mount it manually it is simply exposed as another standard block device, so on my guess this was exposed as /dev/sdb.
-* If you want to copy the images from the SD card to the vm, you can use the linux copy command (cp), but then you should use rsync to preserve the timestamps of the images:
+* If you want to copy the images from the SD card to the vm, you can use the linux copy command (cp), but you must preserve the timestamps of the images:
 
-		rsync -vrt --size-only /src /dest
+		cp -p /src /dest

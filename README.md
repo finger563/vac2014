@@ -181,7 +181,7 @@ To create the videos, we must do a few things:
             ls /media/
 
     * The ls command should show two things: (1) boot, and (2) a long string such as af599925-1134-4b6e-8883-fb6a99cd58f1
-    * This string is the root folder of your SD card use it in the <ROOT_FOLDER> below
+    * This string is the root folder of your SD card use it in the `<ROOT_FOLDER>` below
 
             cd ~            
             mkdir images
